@@ -42,6 +42,7 @@ export default async function initGame(canvas: HTMLDivElement) {
 
   // 加载资源
   async function loadAssets() {
+    Assets.reset(); // 重置资源，避免重复加载
     const manifest = {
       bundles: [
         {
