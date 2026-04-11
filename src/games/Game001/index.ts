@@ -2,6 +2,7 @@ import type { Block, GameConfig, GameSource } from "./type";
 import Button from "./Button";
 import { Application, Assets, Container, Graphics, NineSliceSprite, Sprite, FederatedPointerEvent, Text} from "pixi.js";
 import createNumber from "./Number";
+import { loadConfig, saveConfig } from "../utils";
 
 export default async function initGame(canvas: HTMLDivElement) {
   const app = new Application();
@@ -15,7 +16,12 @@ export default async function initGame(canvas: HTMLDivElement) {
   canvas.appendChild(app.canvas);
 
   // 准备配置
-  const gameConfig = loadConfig("saolei");
+  const gameConfig = loadConfig<GameConfig>("saolei", {
+    rows: 16,
+    cols: 16,
+    bombs: 10,
+    blockSize: 25
+  });
   const gameSize = {
     get width() {
       return gameConfig.cols * gameConfig.blockSize;
@@ -56,18 +62,18 @@ export default async function initGame(canvas: HTMLDivElement) {
   // 加载实际游戏场景
   await loadGame();
 
-  function loadConfig(gamename: string): GameConfig {
-    const config = localStorage.getItem(`gameConfig_${gamename}`);
-    if (config) {
-      return JSON.parse(config);
-    }
-    // 使用默认的设置
-    return { rows: 30, cols: 20, bombs: 10, blockSize: 25 };
-  }
+  // function loadConfig(gamename: string): GameConfig {
+  //   const config = localStorage.getItem(`gameConfig_${gamename}`);
+  //   if (config) {
+  //     return JSON.parse(config);
+  //   }
+  //   // 使用默认的设置
+  //   return { rows: 30, cols: 20, bombs: 10, blockSize: 25 };
+  // }
 
-  function saveConfig(gamename: string, config: GameConfig) {
-    localStorage.setItem(`gameConfig_${gamename}`, JSON.stringify(config));
-  }
+  // function saveConfig(gamename: string, config: GameConfig) {
+  //   localStorage.setItem(`gameConfig_${gamename}`, JSON.stringify(config));
+  // }
 
   async function loadAssets() {
     const manifest = {
@@ -524,28 +530,28 @@ export default async function initGame(canvas: HTMLDivElement) {
       gameConfig.rows = 9;
       gameConfig.cols = 16;
       gameConfig.bombs = 10;
-      saveConfig("saolei", gameConfig);
+      saveConfig<GameConfig>("saolei", gameConfig);
       resetGame();
     });
     const mediumButton = Button("中等", () => {
       gameConfig.rows = 18;
       gameConfig.cols = 24;
       gameConfig.bombs = 40;
-      saveConfig("saolei", gameConfig);
+      saveConfig<GameConfig>("saolei", gameConfig);
       resetGame();
     });
     const hardButton = Button("困难", () => {
       gameConfig.rows = 24;
       gameConfig.cols = 32;
       gameConfig.bombs = 120;
-      saveConfig("saolei", gameConfig);
+      saveConfig<GameConfig>("saolei", gameConfig);
       resetGame();
     });
     const speButton = Button("特别", () => {
       gameConfig.rows = 30;
       gameConfig.cols = 64;
       gameConfig.bombs = 420;
-      saveConfig("saolei", gameConfig);
+      saveConfig<GameConfig>("saolei", gameConfig);
       resetGame();
     });
     diffcultyContainer.addChild(easyButton);
