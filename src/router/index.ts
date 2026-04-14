@@ -29,6 +29,10 @@ const routes = [
       }
     ],
   },
+  {
+    path: "/gameDemo",
+    component: () => import("../games/GameDemo/index.vue"),
+  }
 ];
 
 export const router = createRouter({
