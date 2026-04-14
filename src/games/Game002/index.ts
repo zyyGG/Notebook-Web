@@ -103,6 +103,7 @@ export default async function initGame(canvas: HTMLDivElement) {
         x: 12,
         y: 10,
       },
+      pivotPosition: "leftTop",
       onClick: () => {
         chooseDifficulty();
       }
@@ -120,6 +121,7 @@ export default async function initGame(canvas: HTMLDivElement) {
         x: 12,
         y: 10,
       },
+      pivotPosition: "leftTop",
       onClick: () => {
         resetScene()
       }
@@ -165,10 +167,6 @@ export default async function initGame(canvas: HTMLDivElement) {
       block.sprite.zIndex = 50 + index - row * gameConfig.cols + col; // 根据行列设置zIndex，确保后面生成的在上面
       sceneContainer.addChild(block.sprite);
      })
-    
-    if (import.meta.env.DEV) {
-     console.debug("[Game002] blocks initialized:", blocks.length);
-    }
   }
 
   async function chooseDifficulty() {
@@ -236,7 +234,7 @@ export default async function initGame(canvas: HTMLDivElement) {
       },
       onClick: async () => {
         gameConfig.rows = 14;
-        gameConfig.cols = 36;
+        gameConfig.cols = 32;
         gameConfig.matchCount = 6;
         saveConfig("lianliankan", gameConfig);
         app.stage.removeChildren();
