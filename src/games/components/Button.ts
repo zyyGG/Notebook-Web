@@ -2,22 +2,29 @@ import { Sprite, Container, Text, Color, FederatedPointerEvent, Graphics } from 
 import type { TextStyleOptions } from "pixi.js";
 
 type ButtonOptions = {
-  text?: string | undefined,
-  textStyle?: TextStyleOptions | undefined,
+  text?: string,
+  textStyle?: TextStyleOptions,
   background?: Color | Sprite | number,
   padding?: {
-    x: number,
-    y: number,
-  }
+    x?: number,
+    y?: number,
+  },
+  round?: number,
+  pivotPosition?: "leftTop" | "top" | "rightTop" | "right" | "rightBottom" | "bottom" | "leftBottom" | "left" | "center",
   onClick?: (e: FederatedPointerEvent) => void,
+  onDown?: (e: FederatedPointerEvent) => void,
+  onUp?: (e: FederatedPointerEvent) => void,
 }
 
 export default class Button extends Container {
   constructor(options: ButtonOptions) {
     super();
     const text = options.text || " ";
-    const background = options.background || 0x000000;
-    const onClick = options.onClick;
+    const background = options.background || undefined;
+    const padding = options.padding || {x: 14, y: 4};
+    padding.x = padding.x || 14;
+    padding.y = padding.y || 4;
+    const round = options.round || 0;
 
     const textSprite = new Text({
       text,
@@ -29,28 +36,71 @@ export default class Button extends Container {
     })
     this.addChild(textSprite);
 
-    if(options.padding) {
-      textSprite.x = options.padding.x;
-      textSprite.y = options.padding.y;
+    if(padding) {
+      textSprite.x = padding.x;
+      textSprite.y = padding.y;
     }
 
     if(background instanceof Sprite) {
       this.addChild(background);
-    } else {
+    } else if(background instanceof Color || typeof background === "number") {
       const bg = new Graphics()
-      if(options.padding){
-        bg.rect(0, 0, textSprite.width + options.padding.x * 2, textSprite.height + options.padding.y * 2);
+
+      if(round) {
+        bg.roundRect(0, 0, textSprite.width + (padding.x!) * 2, textSprite.height + (padding.y!) * 2, round);
       } else {
-        bg.rect(0, 0, textSprite.width, textSprite.height);
+        bg.rect(0, 0, textSprite.width + (padding.x!) * 2, textSprite.height + (padding.y!) * 2);
       }
-      
+
       bg.fill(background);
       this.addChildAt(bg, 0);
     }
 
-    if(onClick) {
+    if(options.onClick) {
       this.interactive = true;
-      this.on("pointerdown", onClick);
+      this.on("pointerdown", options.onClick);
+    }
+
+    if(options.onDown) {
+      this.interactive = true;
+      this.on("pointerdown", options.onDown);
+    }
+
+    if(options.onUp) {
+      this.interactive = true;
+      this.on("pointerup", options.onUp);
+    }
+
+    // 修改中心点
+    switch (options.pivotPosition) {
+      case "leftTop":
+        this.pivot.set(0, 0);
+        break;
+      case "top":
+        this.pivot.set(this.width / 2, 0);
+        break;
+      case "rightTop":
+        this.pivot.set(this.width, 0);
+        break;
+      case "right":
+        this.pivot.set(this.width, this.height / 2);
+        break;
+      case "rightBottom":
+        this.pivot.set(this.width, this.height);
+        break;
+      case "bottom":
+        this.pivot.set(this.width / 2, this.height);
+        break;
+      case "leftBottom":
+        this.pivot.set(0, this.height);
+        break;
+      case "left":
+        this.pivot.set(0, this.height / 2);
+        break;
+      case "center":
+      default:
+        this.pivot.set(this.width / 2, this.height / 2);
+        break;
     }
   }
 }
