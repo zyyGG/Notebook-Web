@@ -62,19 +62,6 @@ export default async function initGame(canvas: HTMLDivElement) {
   // 加载实际游戏场景
   await loadGame();
 
-  // function loadConfig(gamename: string): GameConfig {
-  //   const config = localStorage.getItem(`gameConfig_${gamename}`);
-  //   if (config) {
-  //     return JSON.parse(config);
-  //   }
-  //   // 使用默认的设置
-  //   return { rows: 30, cols: 20, bombs: 10, blockSize: 25 };
-  // }
-
-  // function saveConfig(gamename: string, config: GameConfig) {
-  //   localStorage.setItem(`gameConfig_${gamename}`, JSON.stringify(config));
-  // }
-
   async function loadAssets() {
     Assets.reset(); // 重置资源，避免重复加载
     const manifest = {
@@ -417,12 +404,13 @@ export default async function initGame(canvas: HTMLDivElement) {
 
   function autoClickBlock(x: number, y: number) {
     const block = blocks[x]?.[y] || null;
-    if((!block) || block.isRevealed || block.isMarked) {
+    if((!block) || block.isRevealed || block.isMarked || block.isQuestioned) {
       return; // 不做处理
     }
     block.isRevealed = true;
     const count = countAdjacentBombs(x, y);
     block.sprite.texture = Assets.get(`block_${count}`);
+    // debugger;
   }
 
 
@@ -441,6 +429,10 @@ export default async function initGame(canvas: HTMLDivElement) {
       autoClickBlock(x, y+1);
       autoClickBlock(x-1, y);
       autoClickBlock(x+1, y);
+      autoClickBlock(x-1, y-1);
+      autoClickBlock(x-1, y+1);
+      autoClickBlock(x+1, y-1);
+      autoClickBlock(x+1, y+1);
       return 0;
     }
     return count;
@@ -502,10 +494,6 @@ export default async function initGame(canvas: HTMLDivElement) {
     })
     gameDialogContainer.addChild(winnerText);
     
-    // const newButton = Button("再来一局", resetGame);
-    // gameDialogContainer.addChild(newButton);
-    // newButton.position.set(0, 50);
-
     gameDialogContainer.pivot.set(gameDialogContainer.width / 2, gameDialogContainer.height / 2);
     gameDialogContainer.position.set(
       (app.screen.width) / 2 + 20,
@@ -567,6 +555,17 @@ export default async function initGame(canvas: HTMLDivElement) {
       (app.screen.width - easyButton.width) / 2,
       (app.screen.height - easyButton.height * 3 - 12 * 2) / 2,
     )
+
+    // ceshi
+    // const testButton = Button("测试", () => {
+    //   gameConfig.rows = 9;
+    //   gameConfig.cols = 16;
+    //   gameConfig.bombs = 2;
+    //   saveConfig<GameConfig>("saolei", gameConfig);
+    //   resetGame();
+    // })
+    // diffcultyContainer.addChild(testButton);
+    // testButton.position.set(0, (easyButton.height + 12) * 4);
 
   }
 }
