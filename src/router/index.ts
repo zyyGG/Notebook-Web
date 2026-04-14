@@ -29,11 +29,14 @@ const routes = [
       }
     ],
   },
-  {
+];
+
+if(import.meta.env.DEV) {
+  routes.push({
     path: "/gameDemo",
     component: () => import("../games/GameDemo/index.vue"),
-  }
-];
+  })
+}
 
 export const router = createRouter({
   routes,
