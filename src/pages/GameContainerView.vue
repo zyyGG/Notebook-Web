@@ -14,6 +14,10 @@
           <div class="transition w-12 cursor-pointer opacity-80 hover:opacity-100">
             <IconConfig theme="outline" size="24" fill="#fff" />
           </div>
+          <!-- 重置 -->
+          <div class="transition w-12 cursor-pointer opacity-80 hover:opacity-100" @click="handleRefresh">
+            <IconRefresh theme="outline" size="24" fill="#fff"/>
+          </div>
           <div class="transition w-12 cursor-pointer opacity-80 hover:opacity-100" @click="handleTapBarHidden(true)">
             <IconFoldUpOne theme="outline" size="24" fill="#fff"/>
           </div>
@@ -26,18 +30,25 @@
     </div>
 
     <div class="flex-1 h-full p-t-6">
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <component :is="Component" ref="routeView" />
+      </router-view>
     </div>
   </div>
 </template>
 <script lang="ts" setup>
-import { Config as IconConfig, FoldUpOne as IconFoldUpOne, ExpandDownOne as IconExpandDownOne } from "@icon-park/vue-next";
-import { onMounted, ref } from "vue";
+import { Config as IconConfig, FoldUpOne as IconFoldUpOne, ExpandDownOne as IconExpandDownOne, Refresh as IconRefresh } from "@icon-park/vue-next";
+import { ref } from "vue";
+import type { ComponentPublicInstance } from "vue";
 // import { useGameStore } from "../states/gameStore";
 
 // const gameStore = useGameStore();
 const isTapbarHidden = ref(true);
 const tapbar = ref<HTMLDivElement>();
+type RouteViewExpose = {
+  handleRefresh?: () => void,
+}
+const routeView = ref<(ComponentPublicInstance & RouteViewExpose) | null>(null);
 
 function handleTapBarHidden(hidden: boolean) {
   if(hidden === true) {
@@ -72,6 +83,9 @@ function handleTapBarHidden(hidden: boolean) {
   }
 }
 
+function handleRefresh() {
+  routeView.value?.handleRefresh?.();
+}
 
 </script>
 <style scoped>
