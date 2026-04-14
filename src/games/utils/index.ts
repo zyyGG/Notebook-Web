@@ -1,5 +1,4 @@
 export function loadConfig<T>(gamename: string, defaultConfig: T): T {
-  console.log(localStorage.getItem(`gameConfig_${gamename}`));
   return JSON.parse(localStorage.getItem(`gameConfig_${gamename}`) || JSON.stringify(defaultConfig)) as T;
 }
 
