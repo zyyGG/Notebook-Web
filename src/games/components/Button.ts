@@ -1,10 +1,12 @@
 import { Sprite, Container, Text, Color, FederatedPointerEvent, Graphics } from "pixi.js";
 import type { TextStyleOptions } from "pixi.js";
 
-type ButtonOptions = {
+type Background = Color | number | "transparent";
+
+export type ButtonOptions = {
   text?: string,
   textStyle?: TextStyleOptions,
-  background?: Color | Sprite | number,
+  background?: Background,
   padding?: {
     x?: number,
     y?: number,
@@ -17,23 +19,48 @@ type ButtonOptions = {
 }
 
 export default class Button extends Container {
-  constructor(options: ButtonOptions) {
+  public textSprite: Text;
+  public options: ButtonOptions;
+
+  private _backgroundSprite?: Graphics;
+  
+  set text(value: string) {
+    this.textSprite.text = value;
+    this._updateBackground();
+  }
+
+  set background(value: Background) {
+    this._backgroundSprite?.destroy();
+    const bg = new Graphics()
+    bg.clear();
+    bg.roundRect(0, 0, this.textSprite.width + this.textSprite.x * 2, this.textSprite.height + this.textSprite.y * 2, this.options.round || 0);
+    bg.fill(value);
+    this._backgroundSprite = bg;
+    this.addChildAt(bg, 0);
+  }
+
+  constructor(options?: ButtonOptions) {
     super();
+    options = this.options = options || {};
     const text = options.text || " ";
-    const background = options.background || undefined;
+    const background = options.background || "0x333333";
+    const textStyle = options.textStyle || {
+      fill: 0xffffff,
+      fontSize: 18 ,
+      fontWeight: "bold",
+    };
     const padding = options.padding || {x: 14, y: 4};
     padding.x = padding.x || 14;
     padding.y = padding.y || 4;
     const round = options.round || 0;
+    const pivotPosition = options.pivotPosition || "center";
+
 
     const textSprite = new Text({
       text,
-      style: {
-        fill: options.textStyle?.fill || 0xffffff,
-        fontSize: options.textStyle?.fontSize || 24,
-        fontWeight: options.textStyle?.fontWeight || "bold",
-      }
+      style: textStyle,
     })
+    this.textSprite = textSprite;
     this.addChild(textSprite);
 
     if(padding) {
@@ -41,9 +68,7 @@ export default class Button extends Container {
       textSprite.y = padding.y;
     }
 
-    if(background instanceof Sprite) {
-      this.addChild(background);
-    } else if(background instanceof Color || typeof background === "number") {
+    if(background !== undefined) {
       const bg = new Graphics()
 
       if(round) {
@@ -53,6 +78,7 @@ export default class Button extends Container {
       }
 
       bg.fill(background);
+      this._backgroundSprite = bg;
       this.addChildAt(bg, 0);
     }
 
@@ -72,7 +98,7 @@ export default class Button extends Container {
     }
 
     // 修改中心点
-    switch (options.pivotPosition) {
+    switch (pivotPosition) {
       case "leftTop":
         this.pivot.set(0, 0);
         break;
@@ -101,6 +127,13 @@ export default class Button extends Container {
       default:
         this.pivot.set(this.width / 2, this.height / 2);
         break;
+    }
+  }
+
+  private _updateBackground() {
+    if(this._backgroundSprite) {
+      this._backgroundSprite.width = this.textSprite.width + this.textSprite.x * 2;
+      this._backgroundSprite.height = this.textSprite.height + this.textSprite.y * 2;
     }
   }
 }
