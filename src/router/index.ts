@@ -4,6 +4,12 @@ const routes = [
   {
     path: "/",
     component: () => import("../pages/HomeView.vue"),
+    children: [
+      {
+        path: "/diary",
+        component: () => import("../pages/DiaryView.vue"),
+      },
+    ]
   },
   {
     path: "/gameSelector",
