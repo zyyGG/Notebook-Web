@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@icon-park/vue-next": "^1.4.2",
+    "@types/axios": "^0.9.36",
+    "axios": "^1.15.1",
     "front-matter": "^4.0.2",
     "gsap": "^3.15.0",
     "markdown-it": "^14.1.1",
