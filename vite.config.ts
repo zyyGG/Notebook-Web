@@ -11,6 +11,16 @@ export default defineConfig({
     Unocss(),
     markdown()
   ],
+  server: {
+    port: 3580,
+    proxy: {
+      "/api" : {
+        target: "http://localhost:3588",
+        changeOrigin: true,
+        // rewrite: (path) => path.replace(/^\/api/, "")
+      }
+    }
+  }
 })
 
 
