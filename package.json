@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "create:threejs": "node tools/index.js threejs"
   },
   "dependencies": {
     "@icon-park/vue-next": "^1.4.2",
@@ -24,6 +25,7 @@
     "@types/markdown-it": "^14.1.2",
     "@unocss/preset-wind4": "^66.6.7",
     "@vitejs/plugin-vue": "^4.5.2",
+    "chalk": "^5.6.2",
     "typescript": "^5.2.2",
     "unocss": "^66.6.7",
     "vite": "^5.0.8",
