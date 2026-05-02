@@ -10,21 +10,8 @@ export default function (projectName, labelName) {
 }
 
 function createFile(projectName) {
-  // 写入Vue组件文件
-  const vueTemplate = `
-  <template>
-    <div class="w-full h-full border border-red">
-      hello wolrd
-    </div>
-  </template>
-  <script lang="ts" setup>
-  import {ref, onMounted } from "vue"
-
-  </script>
-  <style lang="scss" scoped>
-    
-  </style>
-  `;
+  const vueTemplate = fs.readFileSync(path.join(process.cwd(), "src", "threejs", "template", "index.vue"), "utf-8");
+  const tsTemplate = fs.readFileSync(path.join(process.cwd(), "src", "threejs", "template", "index.ts"), "utf-8");
   const projectPath = path.join(process.cwd(), "src", "threejs", projectName);
   if (fs.existsSync(projectPath)) {
     console.warn(chalk.yellow(`文件夹已存在: ${projectName}`));
@@ -32,6 +19,8 @@ function createFile(projectName) {
     fs.mkdirSync(projectPath);
     fs.writeFileSync(path.join(projectPath, "index.vue"), vueTemplate);
     console.log(chalk.green(`已创建文件: ${projectName}/index.vue`));
+    fs.writeFileSync(path.join(projectPath, "index.ts"), tsTemplate);
+    console.log(chalk.green(`已创建文件: ${projectName}/index.ts`));
   }
 }
 
