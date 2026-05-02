@@ -12,6 +12,9 @@
         <TabBarButton :activeClassName="route.path === '/gameSelector' ? 'text-blue' : ''">
           <router-link to="/gameSelector">游戏Demo</router-link>
         </TabBarButton>
+        <TabBarButton :activeClassName="route.path === '/threejs' ? 'text-blue' : ''">
+          <router-link to="/threejs">Three.js</router-link>
+        </TabBarButton>
       </div>
     </div>
     <div class="flex flex-col h-full mt-4 overflow-y-auto">
