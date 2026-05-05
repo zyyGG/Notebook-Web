@@ -8,7 +8,8 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "create:three": "node tools/index.js create:three",
-    "remove:three": "node tools/index.js remove:three"
+    "remove:three": "node tools/index.js remove:three",
+    "publish": "node tools/index.js publish"
   },
   "dependencies": {
     "@icon-park/vue-next": "^1.4.2",

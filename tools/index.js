@@ -1,6 +1,7 @@
 import process from "process";
 import createThreejsTemplate from "./createThreejsTemplate.js"
 import removeThreejsFiles from "./removeThreejsFiles.js"
+import publish from "./publish.js"
 
 import chalk from "chalk";
 
@@ -21,5 +22,8 @@ switch(args[0]){
       process.exit(1);
     }
     removeThreejsFiles(args[1]);
+    break;
+  case "publish":
+    publish(args[1] || "base");
     break;
 }
