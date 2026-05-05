@@ -13,12 +13,6 @@ export async function getMenuList() {
       path: "/threejs/002",
       tags: [],
     },
-    {
-      id: "5fa83c1b-26a5-4a14-89b2-a3a4d342091a",
-      name: "shader效果",
-      path: "/threejs/003",
-      tags: [],
-    },
     /// replace-flag
   ];
 }

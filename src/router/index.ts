@@ -47,11 +47,9 @@ const routes = [
         path: "002",
         component: () => import("../threejs/002/index.vue"),
       },
-      {
-        path: "003",
-        component: () => import("../threejs/003/index.vue"),
-      },
       /// replace-flag
+  
+  
     ]
   }
 ];
