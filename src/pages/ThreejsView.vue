@@ -54,23 +54,15 @@
 </template>
 <script lang="ts" setup>
 import {ref, onMounted, shallowRef } from "vue"
-type DemoItem = {
-  id: number | string,
-  name: string,
-  path: string,
-  tags: string[],
-}
+import { getMenuList } from "../api/three/index"
+
+type DemoItem = Awaited<ReturnType<typeof getMenuList>>[number]
+  
 const isMenuCollapsed = ref(false)
 const demoList = shallowRef<DemoItem[]>([])
 onMounted(async () => {
-  if(import.meta.env.DEV) {
-    const fileList = await import("../threejs/menuList.json")
-    demoList.value = fileList.default
-  } else {
-    const response = await fetch("/threejs-demos.json")
-    const data = await response.json()
-    demoList.value = data
-  }
+  const response = await getMenuList()
+  demoList.value = response
 })
 
 </script>
