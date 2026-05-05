@@ -13,6 +13,12 @@ export async function getMenuList() {
       path: "/threejs/002",
       tags: [],
     },
+    {
+      id: "aecdd0a2-9c6b-45eb-b000-79fb4a48aa6d",
+      name: "菲涅尔边缘光",
+      path: "/threejs/003",
+      tags: []
+    },
     /// replace-flag
   ];
 }
