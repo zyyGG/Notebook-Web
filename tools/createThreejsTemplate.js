@@ -48,26 +48,24 @@ function createRoute(projectName) {
 }
 
 function createMenu(projectName, labelName) {
+  const menuListPath = path.join(process.cwd(), "src", "api/three", "index.ts");
   // 写入菜单配置文件
-  const menuList = fs.readFileSync(
-    path.join(process.cwd(), "src", "threejs", "menuList.json"),
-    "utf-8",
-  );
-  const menuListTemplate = {
-    id: randomUUID(),
-    name: labelName,
-    path: `/threejs/${projectName}`,
-    tags: [],
-  };
-  if (menuList.includes(`"path": "/threejs/${projectName}"`)) {
+  let menuList = fs.readFileSync(menuListPath, "utf-8");
+  const menuListTemplate = `{
+      id: "${randomUUID()}",
+      name: "${labelName}",
+      path: "/threejs/${projectName}",
+      tags: []
+    },
+    /// replace-flag`;
+  if (menuList.includes(`path: "/threejs/${projectName}"`)) {
     console.warn(chalk.yellow(`菜单配置已存在: ${projectName}`));
   } else {
-    const menuListJson = JSON.parse(menuList);
-    menuListJson.push(menuListTemplate);
-    fs.writeFileSync(
-      path.join(process.cwd(), "src", "threejs", "menuList.json"),
-      JSON.stringify(menuListJson, null, 2),
-    );
+    menuList = menuList.replace(
+      `/// replace-flag`,
+      menuListTemplate,
+    )
+    fs.writeFileSync(menuListPath,menuList, "utf-8");
     console.log(chalk.green(`已更新菜单配置: ${projectName}`));
   }
 }
