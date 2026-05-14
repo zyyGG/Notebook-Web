@@ -3,15 +3,16 @@ import path from "path";
 import chalk from "chalk";
 import { randomUUID } from "node:crypto";
 
-export default function (projectName, labelName) {
-  createFile(projectName);
+export default function (projectName, labelName, renderType = 'webgl') {
+  createFile(projectName, renderType);
   createRoute(projectName);
   createMenu(projectName, labelName);
 }
 
-function createFile(projectName) {
-  const vueTemplate = fs.readFileSync(path.join(process.cwd(), "src", "threejs", "template", "index.vue"), "utf-8");
-  const tsTemplate = fs.readFileSync(path.join(process.cwd(), "src", "threejs", "template", "index.ts"), "utf-8");
+function createFile(projectName, renderType) {
+
+  const vueTemplate = renderType=="webgl" ?  fs.readFileSync(path.join(process.cwd(), "src", "threejs", "template", "index.vue"), "utf-8") :  fs.readFileSync(path.join(process.cwd(), "src", "threejs", "template_gpu", "index.vue"), "utf-8") 
+  const tsTemplate = renderType=="webgl" ? fs.readFileSync(path.join(process.cwd(), "src", "threejs", "template", "index.ts"), "utf-8") : fs.readFileSync(path.join(process.cwd(), "src", "threejs", "template_gpu", "index.ts"), "utf-8")
   const projectPath = path.join(process.cwd(), "src", "threejs", projectName);
   if (fs.existsSync(projectPath)) {
     console.warn(chalk.yellow(`文件夹已存在: ${projectName}`));

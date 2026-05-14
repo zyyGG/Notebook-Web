@@ -14,7 +14,14 @@ switch(args[0]){
       console.error(chalk.red("无效的参数: npm run create:three [projectname] [labelname]"));
       process.exit(1);
     }
-    createThreejsTemplate(args[1], args[2]);
+    
+    if(args[3] == "webgpu") {
+      console.log(chalk.green(`正在创建Three.js项目: ${args[1]}，标签: ${args[2]}`));
+      createThreejsTemplate(args[1], args[2], "webgpu");
+    } else {
+      console.log(chalk.green(`正在创建Three.js项目: ${args[1]}，标签: ${args[2]}`));
+      createThreejsTemplate(args[1], args[2], "webgl");
+    }
     break;
   case "remove:three":
     if(args.length < 2) {
