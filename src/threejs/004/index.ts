@@ -2,14 +2,14 @@ import * as THREE from "three/webgpu";
 import { GUI } from "dat.gui";
 import Stats from 'three/addons/libs/stats.module.js'; // 性能监视工具
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { color, linearDepth, mix, uniform, step , abs, sub, range, pass } from "three/tsl";
+import { color, float, mix, mul, sin, uniform, uv, vec2, sub } from "three/tsl";
 
 export default function () {
   
   let isInit = false;
   const gui = new GUI();
   const stats = new Stats()
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20);
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   const scene = new THREE.Scene();
   const renderer = new THREE.WebGPURenderer({ antialias: true });
   let requestId: number | null = null;
@@ -26,15 +26,34 @@ export default function () {
   // 轨道控制器
   const control = new OrbitControls(camera, renderer.domElement);
 
+  let expose : {
+    mesh: THREE.Mesh;
+    time: ReturnType<typeof uniform<"float", number>>;
+  }
+ 
+
   // 核心函数写在这里
   function main() {
-    gridHelper.visible = false;
-    directionalLightHelper.visible = false;
-    axesHelper.visible = false;
+    const geometry = new THREE.BoxGeometry();
+    const material = new THREE.MeshStandardMaterial();
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    const time = uniform(0);
+    material.colorNode = color(vec2(1, 0), sub(mul(sin(time), 2.0), 1.0));
+
+
+    expose = {
+      mesh,
+      time,
+    }
   }
 
   function update() {
+    const { mesh, time } = expose;
     control.update();
+    mesh.rotation.x += 0.01;
+    time.value += 0.01;
   }
 
   function initHelper() {
@@ -55,8 +74,8 @@ export default function () {
     body.appendChild(stats.dom);
     stats.dom.style.position = "absolute";
 
-    camera.position.z = 8;
-    camera.position.y = 4;
+    camera.position.z = 5;
+    camera.position.y = 5;
     camera.lookAt(0, 0, 0);
 
     directionalLight.position.set(10, 10, 10);

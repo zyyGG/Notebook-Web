@@ -53,6 +53,7 @@ export default function () {
     camera.position.z = 5;
     camera.position.y = 5;
     camera.lookAt(0, 0, 0);
+    scene.background = new THREE.Color(0x3d3d3d);
 
     directionalLight.position.set(10, 10, 10);
     scene.add(directionalLight);

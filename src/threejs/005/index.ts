@@ -9,7 +9,7 @@ export default function () {
   let isInit = false;
   const gui = new GUI();
   const stats = new Stats()
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20);
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 30);
   const scene = new THREE.Scene();
   const renderer = new THREE.WebGPURenderer({ antialias: true });
   let requestId: number | null = null;
@@ -26,11 +26,35 @@ export default function () {
   // 轨道控制器
   const control = new OrbitControls(camera, renderer.domElement);
 
+  let expose : {
+    mesh: THREE.Mesh;
+    time: ReturnType<typeof uniform<"float", number>>;
+  }
+ 
+
   // 核心函数写在这里
   function main() {
-    gridHelper.visible = false;
-    directionalLightHelper.visible = false;
-    axesHelper.visible = false;
+    const geometry = new THREE.BoxGeometry();
+    const material = new THREE.MeshLambertMaterial();
+    
+
+    const randomColor = range(new THREE.Color(0x000000), new THREE.Color(0xffffff))
+    material.colorNode = randomColor;
+    const count = 1000;
+
+    // 这里使用 InstancedMesh 创建多个实例（GPU实例化）
+    const mesh = new THREE.InstancedMesh(geometry, material, count);
+    // 设置每个实例的位置和颜色
+    const dummy = new THREE.Object3D();
+    for(let i = 0; i < count; i++) {
+      // 更改位置，
+      dummy.position.set((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
+      // 更新一下矩阵
+      dummy.updateMatrix();
+      // 设置对应实例的矩阵
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(mesh);
   }
 
   function update() {

@@ -3,6 +3,8 @@ import { GUI } from "dat.gui";
 import Stats from 'three/addons/libs/stats.module.js'; // 性能监视工具
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { color, linearDepth, mix, uniform, step , abs, sub, range, pass } from "three/tsl";
+import { bloom } from "three/examples/jsm/tsl/display/BloomNode.js";
+import { GLTFLoader } from "three/examples/jsm/Addons.js";
 
 export default function () {
   
@@ -11,7 +13,7 @@ export default function () {
   const stats = new Stats()
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20);
   const scene = new THREE.Scene();
-  const renderer = new THREE.WebGPURenderer({ antialias: true });
+  const renderer = new THREE.WebGPURenderer({ antialias: true, forceWebGL: false });
   let requestId: number | null = null;
   // 平行光
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
@@ -26,11 +28,60 @@ export default function () {
   // 轨道控制器
   const control = new OrbitControls(camera, renderer.domElement);
 
+  // 渲染管线
+  const renderPipeline = new THREE.RenderPipeline(renderer); // 新的渲染管线用来替代旧的effectcomposer
+
+  let expose : {
+    
+  }
+ 
+
   // 核心函数写在这里
   function main() {
+
+    // const loader = new GLTFLoader().setPath( '/default/006/' );
+    // loader.load( 'DamagedHelmet.gltf', function ( gltf ) {
+    //   scene.add( gltf.scene );
+    //   gltf.scene.position.set(-2, 0, 0);
+    // });
+    
     gridHelper.visible = false;
     directionalLightHelper.visible = false;
     axesHelper.visible = false;
+
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(),
+      new THREE.MeshStandardMaterial({color: 0xff0000})
+    )
+    scene.add(mesh);
+
+    const mesh2 = new THREE.Mesh(
+      new THREE.BoxGeometry(),
+      new THREE.MeshStandardMaterial({color: 0x00ff00})
+    )
+    mesh2.position.x = 2;
+    scene.add(mesh2);
+
+    const params = {
+      bloomStrength: 1,
+      bloomThreshold: 0,
+      bloomRadius: 0
+    }
+    // 创建初始化用的pass
+    const scenePass = pass(scene, camera)
+    const scenePassColor = scenePass.getTextureNode('output');
+    const bloomPass = bloom(scenePassColor)
+    renderPipeline.outputNode = scenePassColor.add(bloomPass);
+
+    gui.add(params, 'bloomStrength', 0, 3).onChange((value) => {
+      bloomPass.strength.value = value;
+    })
+    gui.add(params, 'bloomThreshold', 0, 1).onChange((value) => {
+      bloomPass.threshold.value = value;
+    })
+    gui.add(params, 'bloomRadius', 0, 1).onChange((value) => {
+      bloomPass.radius.value = value;
+    })
   }
 
   function update() {
@@ -75,7 +126,7 @@ export default function () {
   // 渲染
   function render() {
     update();
-    renderer.render(scene, camera);
+    renderPipeline.render();
     stats.update();
     requestId = requestAnimationFrame(render);
   }

@@ -2,7 +2,8 @@ import * as THREE from "three/webgpu";
 import { GUI } from "dat.gui";
 import Stats from 'three/addons/libs/stats.module.js'; // 性能监视工具
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { color, linearDepth, mix, uniform, step , abs, sub, range, pass } from "three/tsl";
+import { color, linearDepth, mix, uniform, step , abs, sub, range, pass, mrt, output, vec4, vec3, velocity, depth, viewportLinearDepth, emissive, diffuseColor, Fn } from "three/tsl";
+import { bloom } from "three/examples/jsm/tsl/display/BloomNode.js";
 
 export default function () {
   
@@ -26,11 +27,58 @@ export default function () {
   // 轨道控制器
   const control = new OrbitControls(camera, renderer.domElement);
 
+
+  const renderPipeline = new THREE.RenderPipeline(renderer); // 新的渲染管线用来替代旧的effectcomposer
+
   // 核心函数写在这里
   function main() {
     gridHelper.visible = false;
     directionalLightHelper.visible = false;
     axesHelper.visible = false;
+    scene.background = new THREE.Color(0x888888);
+
+    // 原理:
+    // bloom效果可以说是对整个屏幕来进行的
+    // 所以需要约束范围
+    // 通过材质中的emissive属性来决定发光的部分, 这个也正好是发光材质使用的属性
+    // 使用mrt来获取正常渲染的颜色和发光的颜色
+    // 最后让发光颜色经过bloom处理后变为 bloom通道,此时发光颜色有了,只是背景变黑了
+    // 最后把正常颜色和bloom颜色混合在一起输出
+
+    const cube1 = new THREE.Mesh(
+      new THREE.BoxGeometry(),
+      new THREE.MeshStandardMaterial({color: 0xff0000})
+    )
+    scene.add(cube1);
+
+    const cube2 = new THREE.Mesh(
+      new THREE.BoxGeometry(),
+      new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        emissive: 0x00f0f0,
+        opacity: 0.0,
+        transparent: true,
+      })
+    )
+    scene.add(cube2);
+    cube2.position.x = 2;
+
+    const scenePass = pass(scene, camera)
+    const mrtNode = mrt({
+      output: output,
+      emissive: vec4(emissive, 1.0),
+    })
+    scenePass.setMRT(mrtNode)
+
+    renderPipeline.outputNode = Fn(() => {
+      const outputNode = scenePass.getTextureNode("output");
+      const emissiveNode = scenePass.getTextureNode("emissive");  
+      const bloomNode = bloom(emissiveNode);
+      const finalColor = outputNode.add(bloomNode);
+
+      return finalColor;
+    })()
+
   }
 
   function update() {
@@ -75,7 +123,7 @@ export default function () {
   // 渲染
   function render() {
     update();
-    renderer.render(scene, camera);
+    renderPipeline.render();
     stats.update();
     requestId = requestAnimationFrame(render);
   }
