@@ -47,7 +47,10 @@
         </div>
       </div>
     </div>
-    <div class="flex-1 pl-64 transition-padding" :style="{'padding-left': isMenuCollapsed == true ? 'calc(var(--spacing) * 36)' : 'calc(var(--spacing) * 64)'}">
+    <div class="flex-1 pl-64 transition-padding" :style="{
+      'padding-left': isMenuCollapsed == true ? 'calc(var(--spacing) * 36)' : 'calc(var(--spacing) * 64)',
+      'width': isMenuCollapsed == true ? 'calc(100% - var(--spacing) * 36)' : 'calc(100% - var(--spacing) * 64)'
+    }">
       <router-view></router-view>
     </div>
   </div>
