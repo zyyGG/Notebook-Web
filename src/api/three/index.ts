@@ -43,6 +43,12 @@ export async function getMenuList() {
       path: "/threejs/007",
       tags: []
     },
+    {
+      id: "20ce2f60-6825-4988-95d0-b1bdb303d7c1",
+      name: "WEBGPU/噪声",
+      path: "/threejs/008",
+      tags: []
+    },
     /// replace-flag
   ];
 }
