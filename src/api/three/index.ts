@@ -49,6 +49,24 @@ export async function getMenuList() {
       path: "/threejs/008",
       tags: []
     },
+    {
+      id: "33f9f54b-9148-4ebb-8110-e455a15c3b71",
+      name: "WEBGPU/深度",
+      path: "/threejs/009",
+      tags: []
+    },
+    {
+      id: "9f4d08b1-45c5-4279-8c2d-cb2c6f871556",
+      name: "WEBGPU/材质-未完成",
+      path: "/threejs/010",
+      tags: []
+    },
+    {
+      id: "96634224-9f07-41c9-8f10-704ea810573f",
+      name: "自定义control",
+      path: "/threejs/011",
+      tags: []
+    },
     /// replace-flag
   ];
 }

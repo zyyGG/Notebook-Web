@@ -1,8 +1,7 @@
-import * as THREE from "three/webgpu";
+import * as THREE from "three";
 import { GUI } from "dat.gui";
 import Stats from 'three/addons/libs/stats.module.js'; // 性能监视工具
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { color, linearDepth, mix, uniform, step , abs, sub, range, pass } from "three/tsl";
 
 export default function () {
   
@@ -11,7 +10,7 @@ export default function () {
   const stats = new Stats()
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   const scene = new THREE.Scene();
-  const renderer = new THREE.WebGPURenderer({ antialias: true });
+  const renderer = new THREE.WebGLRenderer();
   let requestId: number | null = null;
   // 平行光
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
@@ -28,9 +27,7 @@ export default function () {
 
   // 核心函数写在这里
   function main() {
-    gridHelper.visible = false;
-    directionalLightHelper.visible = false;
-    axesHelper.visible = false;
+    
   }
 
   function update() {
@@ -42,22 +39,21 @@ export default function () {
   }
 
   // 场景初始化
-  async function init(body: HTMLElement){
+  function init(body: HTMLElement){
     if(isInit) return;
     isInit = true;
     initHelper();
     window.addEventListener("resize", handleResize);
 
-    await renderer.init();
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     body.appendChild(renderer.domElement);
     body.appendChild(stats.dom);
     stats.dom.style.position = "absolute";
 
-    camera.position.z = 8;
-    camera.position.y = 4;
+    camera.position.z = 5;
+    camera.position.y = 5;
     camera.lookAt(0, 0, 0);
+    scene.background = new THREE.Color(0x3d3d3d);
 
     directionalLight.position.set(10, 10, 10);
     scene.add(directionalLight);
@@ -114,7 +110,6 @@ export default function () {
   function handleResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
@@ -131,13 +126,9 @@ export default function () {
     });
     scene.clear();
 
-    const rendererAny = renderer as THREE.WebGPURenderer & {
-      renderLists?: { dispose?: () => void };
-      forceContextLoss?: () => void;
-    };
-    rendererAny.renderLists?.dispose?.(); // WebGLRenderer兼容清理
+    renderer.renderLists.dispose(); // 释放渲染列表资源
     renderer.dispose(); // 释放渲染器资源
-    rendererAny.forceContextLoss?.(); // WebGLRenderer兼容清理
+    renderer.forceContextLoss(); // 强制丢失WebGL上下文，释放GPU资源
     renderer.domElement.remove(); // 从DOM中移除canvas元素
 
     // 清理gui

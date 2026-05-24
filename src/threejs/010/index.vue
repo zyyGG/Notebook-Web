@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full relative" ref="container"></div>
+  <div class="w-full h-full relative" ref="container"></div>
 </template>
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
