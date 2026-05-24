@@ -63,7 +63,7 @@ export async function getMenuList() {
     },
     {
       id: "96634224-9f07-41c9-8f10-704ea810573f",
-      name: "自定义control",
+      name: "control/自定义control",
       path: "/threejs/011",
       tags: []
     },
