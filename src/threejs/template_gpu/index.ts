@@ -47,10 +47,12 @@ export default function () {
     isInit = true;
     initHelper();
     window.addEventListener("resize", handleResize);
+    const width = body.clientWidth;
+    const height = body.clientHeight;
 
     await renderer.init();
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(width, height);
     body.appendChild(renderer.domElement);
     body.appendChild(stats.dom);
     stats.dom.style.position = "absolute";
@@ -112,10 +114,14 @@ export default function () {
   }
 
   function handleResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const parent = renderer.domElement.parentElement;
+    if (!parent) return;
+    const width = parent.clientWidth;
+    const height = parent.clientHeight;
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(width, height);
   }
 
   function destory() {

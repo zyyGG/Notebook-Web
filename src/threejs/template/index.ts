@@ -8,7 +8,7 @@ export default function () {
   let isInit = false;
   const gui = new GUI();
   const stats = new Stats()
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  let camera = null as unknown as THREE.PerspectiveCamera;
   const scene = new THREE.Scene();
   const renderer = new THREE.WebGLRenderer();
   let requestId: number | null = null;
@@ -23,7 +23,7 @@ export default function () {
   const gridHelper = new THREE.GridHelper(10, 10, new THREE.Color(0xff0000), new THREE.Color(0x888888));
 
   // 轨道控制器
-  const control = new OrbitControls(camera, renderer.domElement);
+  let control = null as unknown as OrbitControls;
 
   // 核心函数写在这里
   function main() {
@@ -44,16 +44,23 @@ export default function () {
     isInit = true;
     initHelper();
     window.addEventListener("resize", handleResize);
+    const width = body.clientWidth;
+    const height = body.clientHeight;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(width, height);
     body.appendChild(renderer.domElement);
     body.appendChild(stats.dom);
     stats.dom.style.position = "absolute";
 
+    camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
     camera.position.z = 5;
     camera.position.y = 5;
     camera.lookAt(0, 0, 0);
     scene.background = new THREE.Color(0x3d3d3d);
+
+    control = new OrbitControls(camera, renderer.domElement);
+    control.enableDamping = true;
 
     directionalLight.position.set(10, 10, 10);
     scene.add(directionalLight);
@@ -108,9 +115,14 @@ export default function () {
   }
 
   function handleResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const parent = renderer.domElement.parentElement;
+    if (!parent) return;
+    const width = parent.clientWidth;
+    const height = parent.clientHeight;
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(width, height);
   }
 
   function destory() {
