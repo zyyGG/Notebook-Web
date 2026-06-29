@@ -67,6 +67,12 @@ export async function getMenuList() {
       path: "/threejs/011",
       tags: []
     },
+    {
+      id: "3213ae02-f9d8-4d4d-8ab2-ebf971518fb0",
+      name: "传送门视觉效果",
+      path: "/threejs/012",
+      tags: []
+    },
     /// replace-flag
   ];
 }
