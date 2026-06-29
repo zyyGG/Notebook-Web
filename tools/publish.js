@@ -13,7 +13,7 @@ export default function (type = "base") {
       break;
     // 整个dist文件夹发布到服务器
     case "all":
-      publishToServer(["."]);
+      publishToServer(["./*"]);
       break;
     // 其他的情况就是默认发布指定的目录
     default:
