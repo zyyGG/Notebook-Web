@@ -73,6 +73,12 @@ export async function getMenuList() {
       path: "/threejs/012",
       tags: []
     },
+    {
+      id: "cf06b220-f96f-46d2-84bf-1cc3edb2708e",
+      name: "模型刨切与模板缓冲",
+      path: "/threejs/013",
+      tags: []
+    },
     /// replace-flag
   ];
 }
