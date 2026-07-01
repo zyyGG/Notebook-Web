@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { GUI } from "dat.gui";
+import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import Stats from 'three/addons/libs/stats.module.js'; // 性能监视工具
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
@@ -27,8 +27,9 @@ export default function () {
   let timer = null as unknown as THREE.Timer;
   let update = () => {}
 
-  // 核心函数写在这里
+  
   function main() {
+    // 核心函数写在这里
 
     update = () => {
       const delta = timer.getDelta();
