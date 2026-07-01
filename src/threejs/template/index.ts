@@ -24,14 +24,16 @@ export default function () {
 
   // 轨道控制器
   let control = null as unknown as OrbitControls;
+  let timer = null as unknown as THREE.Timer;
+  let update = () => {}
 
   // 核心函数写在这里
   function main() {
-    
-  }
 
-  function update() {
-    control.update();
+    update = () => {
+      const delta = timer.getDelta();
+      console.log(delta)
+    }
   }
 
   function initHelper() {
@@ -62,6 +64,8 @@ export default function () {
     control = new OrbitControls(camera, renderer.domElement);
     control.enableDamping = true;
 
+    timer = new THREE.Timer();
+
     directionalLight.position.set(10, 10, 10);
     scene.add(directionalLight);
     directionalLightHelper.update();
@@ -76,10 +80,12 @@ export default function () {
   }
 
   // 渲染
-  function render() {
+  function render(timestamp: number) {
     update();
     renderer.render(scene, camera);
     stats.update();
+    control.update();
+    timer.update(timestamp);
     requestId = requestAnimationFrame(render);
   }
 
