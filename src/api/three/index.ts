@@ -79,6 +79,12 @@ export async function getMenuList() {
       path: "/threejs/013",
       tags: []
     },
+    {
+      id: "059e5f32-3323-4b51-bc0a-b45a69a5d741",
+      name: "遮挡透视与深度缓冲",
+      path: "/threejs/014",
+      tags: []
+    },
     /// replace-flag
   ];
 }

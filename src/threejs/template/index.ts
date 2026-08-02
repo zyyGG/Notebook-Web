@@ -33,7 +33,6 @@ export default function () {
 
     update = () => {
       const delta = timer.getDelta();
-      console.log(delta)
     }
   }
 
@@ -81,7 +80,7 @@ export default function () {
   }
 
   // 渲染
-  function render(timestamp: number) {
+  function render(timestamp: number = 0) {
     update();
     renderer.render(scene, camera);
     stats.update();
