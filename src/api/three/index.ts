@@ -85,6 +85,12 @@ export async function getMenuList() {
       path: "/threejs/014",
       tags: []
     },
+    {
+      id: "b8a89802-c232-4982-95a5-5f52e85bc395",
+      name: "实例化渲染",
+      path: "/threejs/015",
+      tags: []
+    },
     /// replace-flag
   ];
 }
