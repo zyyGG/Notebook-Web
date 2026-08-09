@@ -156,9 +156,9 @@ export default class Dialog extends Container {
       }
     }
 
-    // 背景
     this.zIndex = 99999;
 
-    this.pivot.set(this.width / 2, this.height / 2);
+    // 使用 options 中的宽高计算 pivot，避免容器 bounds 未及时更新导致 pivot 偏移
+    this.pivot.set(width / 2, height / 2);
   }
 }

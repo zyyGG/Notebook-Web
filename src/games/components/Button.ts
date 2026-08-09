@@ -97,35 +97,38 @@ export default class Button extends Container {
       this.on("pointerup", options.onUp);
     }
 
-    // 修改中心点
+    // 使用实际子元素尺寸计算 pivot，避免容器 bounds 未及时更新导致 pivot 偏移
+    const containerWidth = textSprite.width + padding.x! * 2;
+    const containerHeight = textSprite.height + padding.y! * 2;
+
     switch (pivotPosition) {
       case "leftTop":
         this.pivot.set(0, 0);
         break;
       case "top":
-        this.pivot.set(this.width / 2, 0);
+        this.pivot.set(containerWidth / 2, 0);
         break;
       case "rightTop":
-        this.pivot.set(this.width, 0);
+        this.pivot.set(containerWidth, 0);
         break;
       case "right":
-        this.pivot.set(this.width, this.height / 2);
+        this.pivot.set(containerWidth, containerHeight / 2);
         break;
       case "rightBottom":
-        this.pivot.set(this.width, this.height);
+        this.pivot.set(containerWidth, containerHeight);
         break;
       case "bottom":
-        this.pivot.set(this.width / 2, this.height);
+        this.pivot.set(containerWidth / 2, containerHeight);
         break;
       case "leftBottom":
-        this.pivot.set(0, this.height);
+        this.pivot.set(0, containerHeight);
         break;
       case "left":
-        this.pivot.set(0, this.height / 2);
+        this.pivot.set(0, containerHeight / 2);
         break;
       case "center":
       default:
-        this.pivot.set(this.width / 2, this.height / 2);
+        this.pivot.set(containerWidth / 2, containerHeight / 2);
         break;
     }
   }
