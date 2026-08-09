@@ -32,6 +32,11 @@ const routes = [
         path: "game002",
         component: () => import("../games/Game002/index.vue"),
         params: true,
+      },
+      {
+        path: "gameDemo",
+        component: () => import("../games/GameDemo/index.vue"),
+        params: true,
       }
     ],
   },
