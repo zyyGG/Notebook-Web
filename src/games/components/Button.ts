@@ -44,11 +44,13 @@ export default class Button extends Container {
     options = this.options = options || {};
     const text = options.text || " ";
     const background = options.background || "0x333333";
-    const textStyle = options.textStyle || {
-      fill: 0xffffff,
-      fontSize: 18 ,
-      fontWeight: "bold",
-    };
+
+    // 字体设置
+    const textStyle = options.textStyle || {};
+    textStyle.fill = textStyle.fill || "white";
+    textStyle.fontSize = textStyle.fontSize || 12;
+    textStyle.fontFamily = textStyle.fontFamily || "Arial";
+
     const padding = options.padding || {x: 14, y: 4};
     padding.x = padding.x || 14;
     padding.y = padding.y || 4;

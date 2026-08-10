@@ -4,6 +4,7 @@
     <div class="grid grid-cols-6 w-full h-full gap-4 p-8">
       <GameCard title="扫雷" path="/gameContainer/game001" />
       <GameCard title="连连看" path="/gameContainer/game002" />
+      <GameCard title="俄罗斯方块" path="/gameContainer/game003" />
       <GameCard title="游戏Demo" path="/gameContainer/gameDemo" />
     </div>
   </div>
