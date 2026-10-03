@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createGameState, hardDrop, movePiece, rotatePiece, softDrop, startGame } from "../logic";
+import { createGameState, hardDrop, movePiece, pauseGame, resumeGame, rotatePiece, softDrop, startGame } from "../logic";
 
 describe("Game003 tetris logic", () => {
   it("prepares a preview piece before starting", () => {
@@ -7,6 +7,23 @@ describe("Game003 tetris logic", () => {
 
     expect(state.current).toBeNull();
     expect(state.next).toBeTypeOf("string");
+  });
+
+  it("pauses and resumes without resetting the active piece or score", () => {
+    const state = createGameState(20, 10);
+    startGame(state, "T", "I");
+    movePiece(state, -1, 1);
+    const pausedPiece = state.current;
+    const pausedScore = state.score;
+
+    expect(pauseGame(state)).toBe(true);
+    expect(movePiece(state, 1, 0)).toBe(false);
+    expect(softDrop(state).locked).toBe(false);
+    expect(resumeGame(state)).toBe(true);
+
+    expect(state.status).toBe("playing");
+    expect(state.current).toBe(pausedPiece);
+    expect(state.score).toBe(pausedScore);
   });
 
   it("moves pieces within board bounds and rotates them", () => {

@@ -25,6 +25,18 @@ export function startGame(state: GameState, firstPiece?: PieceType, nextPiece?: 
   return emptyResult(!spawned);
 }
 
+export function pauseGame(state: GameState): boolean {
+  if (state.status !== "playing") return false;
+  state.status = "paused";
+  return true;
+}
+
+export function resumeGame(state: GameState): boolean {
+  if (state.status !== "paused") return false;
+  state.status = "playing";
+  return true;
+}
+
 export function canPlace(state: GameState, piece: Piece): boolean {
   for (let row = 0; row < piece.shape.length; row++) {
     for (let col = 0; col < piece.shape[row].length; col++) {

@@ -1,6 +1,6 @@
 export type PieceType = "I" | "J" | "L" | "O" | "S" | "T" | "Z";
 export type Cell = PieceType | null;
-export type GameStatus = "ready" | "playing" | "over";
+export type GameStatus = "ready" | "playing" | "paused" | "over";
 
 export type Piece = {
   type: PieceType;

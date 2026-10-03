@@ -10,8 +10,8 @@ import VContainer from "../components/v2/VContainer";
 import Board from "./Board";
 import NextPiecePreview from "./NextPiecePreview";
 import { DEFAULT_CONFIG } from "./const";
-import { createGameState, hardDrop, movePiece, rotatePiece, softDrop, startGame } from "./logic";
-import type { GameConfig, StepResult } from "./type";
+import { createGameState, hardDrop, movePiece, pauseGame, resumeGame, rotatePiece, softDrop, startGame } from "./logic";
+import type { GameConfig, Piece, StepResult } from "./type";
 
 const GAME_CONFIG_KEY = "eluosifangkuai";
 const HIGH_SCORE_KEY = `${GAME_CONFIG_KEY}_highScore`;
@@ -96,6 +96,8 @@ export default async function initGame(canvas: HTMLDivElement): Promise<() => vo
 
 	let tickerAttached = false;
 	let elapsed = 0;
+	let arrowDownHeld = false;
+	let arrowDownPiece: Piece | null = null;
 
 	const leftButton = createButton("←", 56, () => moveAndRender(-1, 0)).button;
 	const rotateButton = createButton("↻", 56, () => {
@@ -108,7 +110,7 @@ export default async function initGame(canvas: HTMLDivElement): Promise<() => vo
 	const hardDropButton = createButton("落底", 96, () => {
 		if (state.status === "playing") handleStep(hardDrop(state));
 	}).button;
-	const { button: startButton, label: startText } = createButton("开始", 112, startOrRestart, 0x315c48);
+	const { button: startButton, label: startText } = createButton("开始", 112, toggleGame, 0x315c48);
 
 	// moveRow.add(leftButton, rotateButton, rightButton, softDropButton);
 	actionRow.add(startButton);
@@ -135,6 +137,18 @@ export default async function initGame(canvas: HTMLDivElement): Promise<() => vo
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
+		if (event.key === "ArrowDown") {
+			event.preventDefault();
+			if (!arrowDownHeld) {
+				arrowDownHeld = true;
+				arrowDownPiece = state.status === "playing" ? state.current : null;
+			}
+			if (state.status === "playing" && arrowDownPiece && state.current === arrowDownPiece) {
+				handleStep(softDrop(state));
+			}
+			return;
+		}
+
 		if (state.status !== "playing") return;
 
 		switch (event.key) {
@@ -150,16 +164,24 @@ export default async function initGame(canvas: HTMLDivElement): Promise<() => vo
 				event.preventDefault();
 				if (rotatePiece(state)) render();
 				break;
-			case "ArrowDown":
-				event.preventDefault();
-				handleStep(softDrop(state));
-				break;
 		}
+	}
+
+	function handleKeyUp(event: KeyboardEvent) {
+		if (event.key !== "ArrowDown") return;
+		arrowDownHeld = false;
+		arrowDownPiece = null;
+	}
+
+	function handleWindowBlur() {
+		arrowDownHeld = false;
+		arrowDownPiece = null;
 	}
 
 	function handleStep(result: StepResult) {
 		if (result.clearedLines > 0) {
-			Toast.success(`消除 ${result.clearedLines} 行`);
+      // 消除不必提示
+			// Toast.success(`消除 ${result.clearedLines} 行`);
 		}
 		if (result.gameOver) {
 			stopTicker();
@@ -179,7 +201,27 @@ export default async function initGame(canvas: HTMLDivElement): Promise<() => vo
 		linesText.options({ text: `消行 ${state.lines}` });
 		highScoreText.options({ text: `最高 ${highScore}` });
 		stats.refresh();
-		startText.options({ text: state.status === "ready" ? "开始" : "重新开始" });
+		const actionLabel = {
+			ready: "开始",
+			playing: "暂停",
+			paused: "继续",
+			over: "重新开始",
+		}[state.status];
+		startText.options({ text: actionLabel });
+	}
+
+	function toggleGame() {
+		if (pauseGame(state)) {
+			stopTicker();
+			render();
+			return;
+		}
+		if (resumeGame(state)) {
+			startTicker();
+			render();
+			return;
+		}
+		startOrRestart();
 	}
 
 	function startOrRestart() {
@@ -267,12 +309,16 @@ export default async function initGame(canvas: HTMLDivElement): Promise<() => vo
 	const resizeObserver = new ResizeObserver(resize);
 	resizeObserver.observe(canvas);
 	window.addEventListener("keydown", handleKeyDown);
+	window.addEventListener("keyup", handleKeyUp);
+	window.addEventListener("blur", handleWindowBlur);
 	resize();
 	render();
 
 	return () => {
 		stopTicker();
 		window.removeEventListener("keydown", handleKeyDown);
+		window.removeEventListener("keyup", handleKeyUp);
+		window.removeEventListener("blur", handleWindowBlur);
 		resizeObserver.disconnect();
 		screen.destroy({ children: true });
 		root.destroy();
