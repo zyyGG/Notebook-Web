@@ -24,13 +24,7 @@ export default class Toast {
 	private static readonly duration = 3000;
 
 	static mount(app: PIXI.Application) {
-		this.items.forEach((item) => {
-			clearTimeout(item.timer);
-			if (item.exitTimer) clearTimeout(item.exitTimer);
-			gsap.killTweensOf(item.view);
-		});
-		this.items = [];
-		this.layer?.destroy({ children: true });
+		this.unmount(this.app);
 
 		this.app = app;
 		this.layer = new PIXI.Container();
@@ -41,6 +35,20 @@ export default class Toast {
 		const pending = this.pending;
 		this.pending = [];
 		pending.forEach(({ kind, text }) => this.show(kind, text));
+	}
+
+	static unmount(app?: PIXI.Application) {
+		if (app && this.app !== app) return;
+		this.items.forEach((item) => {
+			clearTimeout(item.timer);
+			if (item.exitTimer) clearTimeout(item.exitTimer);
+			gsap.killTweensOf(item.view);
+			item.view.destroy({ children: true });
+		});
+		this.items = [];
+		this.layer?.destroy({ children: true });
+		this.layer = undefined;
+		this.app = undefined;
 	}
 
 	static message(text: string) {
