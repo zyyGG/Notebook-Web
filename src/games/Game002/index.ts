@@ -333,6 +333,7 @@ export default async function initGame(canvas: HTMLDivElement) {
     // 3
     // 对blockA的横向延申继续延申做判断
     for(let va of vaMatchGroup) {
+      if(va.matchId !== -1) continue;
       const haMatchGroup2 = getHorizontalMatchGroup(va);
       for(let ha2 of haMatchGroup2) {
         for(let vb of vbMatchGroup) {
@@ -344,6 +345,7 @@ export default async function initGame(canvas: HTMLDivElement) {
     }
       // 对blockA的纵向延申继续延申做判断
     for(let ha of haMatchGroup) {
+      if(ha.matchId !== -1) continue;
       const vaMatchGroup2 = getVerticalMatchGroup(ha);
       for(let va2 of vaMatchGroup2) {
         for(let hb of hbMatchGroup) {
