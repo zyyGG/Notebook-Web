@@ -46,6 +46,8 @@ new Root(appOptions, canvas).add(container1, container2);
 - `appOptions`：传给 `PIXI.Application.init()` 的配置。
 - `canvas`：将 PixiJS canvas 插入的 HTML `div`。
 - `add(...containers)`：把一个或多个 `Container` 添加到 PixiJS stage，返回 `Root`。
+- `ready`：Promise，在 PixiJS Application 初始化完成后 resolve；需要访问 `app` 或启动 ticker 时先等待它。
+- `destroy()`：销毁 Application、移除 canvas，并清理 Root 管理的 Toast 图层。
 - `options()`：目前尚未实现，不要用它设置属性。
 
 ### Container
