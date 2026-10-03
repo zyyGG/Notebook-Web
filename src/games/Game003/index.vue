@@ -2,11 +2,23 @@
   <div ref="canvas" class="h-full"></div>
 </template>
 <script lang="ts" setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import initGame from ".";
 const canvas = ref<HTMLDivElement | null>(null);
-onMounted(() => {
-  canvas.value && initGame(canvas.value);
+let disposeGame: (() => void) | undefined;
+let isUnmounted = false;
+
+onMounted(async () => {
+  if (!canvas.value) return;
+  const dispose = await initGame(canvas.value);
+  if (isUnmounted) dispose();
+  else disposeGame = dispose;
+});
+
+onUnmounted(() => {
+  isUnmounted = true;
+  disposeGame?.();
+  disposeGame = undefined;
 });
 
 function handleRefresh() {
