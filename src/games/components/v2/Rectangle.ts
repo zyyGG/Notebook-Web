@@ -42,11 +42,11 @@ export default class Rectangle extends PIXI.Container {
   }
 
   options(options: Options = {}) {
-    this._x = options.x || this._x || 0;
-    this._y = options.y || this._y || 0;
-    this._width = options.width || this._width || 100;
-    this._height = options.height || this._height || 100;
-    this._background = options.background || this._background || "white";
+    this._x = options.x ?? this._x;
+    this._y = options.y ?? this._y;
+    this._width = options.width ?? this._width;
+    this._height = options.height ?? this._height;
+    this._background = options.background ?? this._background;
     this.draw();
     return this;
   }

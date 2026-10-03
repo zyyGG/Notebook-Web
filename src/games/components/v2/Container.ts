@@ -12,61 +12,64 @@ export type Options = {
 }
 
 export default class Container extends BaseContainer {
-  _x: number = 0;
-  _y: number = 0;
   _width: number = 100;
   _height: number = 100;
+  _fixedWidth?: number;
+  _fixedHeight?: number;
   _padding: Padding = new Padding();
-  _background: string | number = "0xff000033";
-  
-  graphics!: PIXI.Graphics;
+
   constructor() {
     super();
-    this._padding = new Padding();
-    this.draw();
-    return this;
   }
 
   draw() {
-    if(this.graphics) this.removeChild(this.graphics);
-
-    const graphics = new PIXI.Graphics();
-    this.graphics = graphics
-      .beginPath()
-      .roundRect(this._x, this._y, this._width, this._height, 8)
-      .closePath()
-      .fill(this._background)
-    this.addChild(graphics);
+    this.drawBackground(8);
     return this;
   }
 
-  add(...containers: BaseContainer[]) {
-    const offsetX = this._x + this._padding.left;
-    const offsetY = this._y + this._padding.top;
-    containers.forEach((container) => {
-      this.addChild(container);
-      container.setOffset(offsetX, offsetY);
-      this._children.push(container);
-      container.draw();
+  protected layoutChildren() {
+    this._children.forEach((child) => {
+      this.layoutChild(child, this._padding.left, this._padding.top);
     });
-    
-    return this;
+  }
+
+  protected getContentSize() {
+    return this._children.reduce((size, child) => {
+      const origin = this.getChildOrigin(child);
+      const childWidth = child instanceof BaseContainer ? child._width : child.width;
+      const childHeight = child instanceof BaseContainer ? child._height : child.height;
+      return {
+        width: Math.max(size.width, origin.x + childWidth),
+        height: Math.max(size.height, origin.y + childHeight),
+      };
+    }, { width: 0, height: 0 });
+  }
+
+  protected onChildrenChanged() {
+    const contentSize = this.getContentSize();
+    this._width = this._fixedWidth ?? Math.max(
+      100,
+      Math.ceil(contentSize.width + this._padding.left + this._padding.right),
+    );
+    this._height = this._fixedHeight ?? Math.max(
+      100,
+      Math.ceil(contentSize.height + this._padding.top + this._padding.bottom),
+    );
+  }
+
+  add(...children: PIXI.Container[]): this {
+    return super.add(...children);
   }
 
   options(options : Options) {
-    this._x = options.x || this._x;
-    this._y = options.y || this._y;
-    this._width = options.width || this._width;
-    this._height = options.height || this._height;
+    this._x = options.x ?? this._x;
+    this._y = options.y ?? this._y;
+    if (options.width !== undefined) this._fixedWidth = options.width;
+    if (options.height !== undefined) this._fixedHeight = options.height;
     this._padding = options.padding ? new Padding().set(options.padding) : this._padding;
-    this._background = options.background || this._background;
-
-    const offsetX = this._x + this._padding.left;
-    const offsetY = this._y + this._padding.top;
-    this._children.forEach((container) => {
-      container.setOffset(offsetX, offsetY);
-    });
-    this.draw()
+    this._background = options.background ?? this._background;
+    this.onChildrenChanged();
+    this.refresh();
     return this;
   }
 }

@@ -1,5 +1,6 @@
 import * as PIXI from "pixi.js";
 import Container from "./Container";
+import Toast from "./Toast";
 
 export type Options = {};
 
@@ -26,6 +27,7 @@ export default class Root {
     await app.init(this.appOptions);
     this.app = app;
     this.canvas.appendChild(app.canvas); // 把 PIXI 的 canvas 挂到传入的 div 上
+    Toast.mount(app);
     this.pending.forEach((fn) => fn());
     this.pending = [];
   }
@@ -40,10 +42,10 @@ export default class Root {
 
   add(...containers: Container[]) {
     if(containers.length === 0) return this;
-    containers.forEach((container) => {
-      this.#run(() => {
-        this.app?.stage.addChild(container);
-      });
+    this.#run(() => {
+      containers.forEach((container) => this.app?.stage.addChild(container));
+      containers.forEach((container) => container.layout());
+      containers.forEach((container) => container.drawTree());
     });
     return this;
   }

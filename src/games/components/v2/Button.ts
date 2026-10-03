@@ -1,22 +1,17 @@
 import * as PIXI from "pixi.js";
-import Rectangle from "./Rectangle";
-import Text from "./Text";
 import Padding, { type PaddingParams } from "./Padding"
 import BaseContainer from "./BaseContainer";
 
 export type Options = {
   x?: number;
   y?: number;
-  // width?: number;
-  // height?: number;
+  width?: number;
+  height?: number;
   background?: string | number;
-
-  text?: string;
-  fontSize?: number;
-  textColor?: string | number;
-  textWeight?: PIXI.TextStyleFontWeight;
-  
   padding?: PaddingParams;
+  onClick?: ((event: PIXI.FederatedPointerEvent) => void) | null;
+  onDown?: ((event: PIXI.FederatedPointerEvent) => void) | null;
+  onUp?: ((event: PIXI.FederatedPointerEvent) => void) | null;
 }
 
 export default class Button extends BaseContainer {
@@ -24,66 +19,104 @@ export default class Button extends BaseContainer {
   _y: number = 0;
   _width: number = 64;
   _height: number = 28;
-  _background: string | number = "0x8734CB";
+  _fixedWidth?: number;
+  _fixedHeight?: number;
   _padding: Padding = new Padding();
 
-  _text: string = "Button";
-  _fontSize: number = 24;
-  _textColor: string | number = "0xFFD745";
-  _textWeight: PIXI.TextStyleFontWeight = "bold";
+  _onClick?: (event: PIXI.FederatedPointerEvent) => void;
+  _onDown?: (event: PIXI.FederatedPointerEvent) => void;
+  _onUp?: (event: PIXI.FederatedPointerEvent) => void;
 
+  private readonly handlePointerTap = (event: PIXI.FederatedPointerEvent) => {
+    this._onClick?.(event);
+  };
+  private readonly handlePointerDown = (event: PIXI.FederatedPointerEvent) => {
+    this._onDown?.(event);
+  };
 
-  _graphics!: Rectangle;
-  _graphicsText!: Text;
+  private readonly handlePointerUp = (event: PIXI.FederatedPointerEvent) => {
+    this._onUp?.(event);
+  };
 
   constructor(){ 
     super(); 
+    this._background = "0x8734CB";
     this._padding.set(8, 24);
-    this.draw();
-    return this;
+    this.measure();
   }
 
   draw() {
-    this.removeChildren();
+    this.drawBackground();
+  }
 
-    this._graphicsText = new Text().options({
-      x: this._x + this._padding.left + this._offset_x,
-      y: this._y + this._padding.top + this._offset_y,
-      text: this._text,
-      fontSize: this._fontSize,
-      textColor: this._textColor,
-      textWeight: this._textWeight,
+  protected layoutChildren() {
+    this._children.forEach((child) => {
+      this.layoutChild(child, this._padding.left, this._padding.top);
     });
+  }
 
-    this._width = Math.floor(this._graphicsText.width + this._padding.left + this._padding.right);
-    this._height = Math.floor(this._graphicsText.height + this._padding.top + this._padding.bottom);
+  protected onChildrenChanged() {
+    this.measure();
+  }
 
-    this._graphics = new Rectangle().options({
-      x: this._x + this._offset_x,
-      y: this._y + this._offset_y,
-      width: this._width,
-      height: this._height,
-      background: this._background,
-    });
+  private measure() {
+    const contentWidth = this._children.reduce((width, child) => {
+      const origin = this.getChildOrigin(child);
+      return Math.max(width, origin.x + (child instanceof BaseContainer ? child._width : child.width));
+    }, 0);
+    const contentHeight = this._children.reduce((height, child) => {
+      const origin = this.getChildOrigin(child);
+      return Math.max(height, origin.y + (child instanceof BaseContainer ? child._height : child.height));
+    }, 0);
+    this._width = this._fixedWidth ?? Math.max(64, Math.ceil(contentWidth + this._padding.left + this._padding.right));
+    this._height = this._fixedHeight ?? Math.max(28, Math.ceil(contentHeight + this._padding.top + this._padding.bottom));
+    this.hitArea = new PIXI.Rectangle(0, 0, this._width, this._height);
+  }
 
-    this.addChild(this._graphics, this._graphicsText);
+  private updateClickHandler() {
+    this.off("pointertap", this.handlePointerTap);
+    if (this._onClick) {
+      this.eventMode = "static";
+      this.cursor = "pointer";
+      this.on("pointertap", this.handlePointerTap);
+    } else {
+      this.eventMode = "passive";
+      this.cursor = "default";
+    }
+  }
+
+  private updatePointerDownHandler() {
+    this.off("pointerdown", this.handlePointerDown);
+    if (this._onDown) {
+      this.eventMode = "static";
+      this.on("pointerdown", this.handlePointerDown);
+    }
+  }
+
+  private updatePointerUpHandler() {
+    this.off("pointerup", this.handlePointerUp);
+    if (this._onUp) {
+      this.eventMode = "static";
+      this.on("pointerup", this.handlePointerUp);
+    }
   }
 
   options(options: Options) {
-    this._x = options.x || this._x ;
-    this._y = options.y || this._y ;
-    // this._width = options.width || this._width;
-    // this._height = options.height || this._height;
-    this._background = options.background || this._background;
-
-    this._text = options.text || this._text;
-    this._fontSize = options.fontSize || this._fontSize;
-    this._textColor = options.textColor || this._textColor;
-    this._textWeight = options.textWeight || this._textWeight;
-    
+    this._x = options.x ?? this._x;
+    this._y = options.y ?? this._y;
+    if (options.width !== undefined) this._fixedWidth = options.width;
+    if (options.height !== undefined) this._fixedHeight = options.height;
+    this._background = options.background ?? this._background;
     this._padding = options.padding ? new Padding().set(options.padding) : this._padding;
+    if ("onClick" in options) this._onClick = options.onClick ?? undefined;
+    if ("onDown" in options) this._onDown = options.onDown ?? undefined;
+    if ("onUp" in options) this._onUp = options.onUp ?? undefined;
 
-    this.draw();
+    this.measure();
+    this.updateClickHandler();
+    this.updatePointerDownHandler();
+    this.updatePointerUpHandler();
+    this.refresh();
     return this
   }
 }

@@ -43,12 +43,12 @@ export default class Text extends PIXI.Container {
   }
 
   options(options: Options = {}) {
-    this._x = options.x || this._x;
-    this._y = options.y || this._y;
-    this._text = options.text || this._text;
-    this._fontSize = options.fontSize || this._fontSize;
-    this._textColor = options.textColor || this._textColor;
-    this._textWeight = options.textWeight || this._textWeight;
+    this._x = options.x ?? this._x;
+    this._y = options.y ?? this._y;
+    this._text = options.text ?? this._text;
+    this._fontSize = options.fontSize ?? this._fontSize;
+    this._textColor = options.textColor ?? this._textColor;
+    this._textWeight = options.textWeight ?? this._textWeight;
     this.draw();
     return this;
   }

@@ -9,7 +9,7 @@ const routes = [
         path: "/diary",
         component: () => import("../pages/DiaryView.vue"),
       },
-    ]
+    ],
   },
   {
     path: "/gameSelector",
@@ -38,11 +38,6 @@ const routes = [
         component: () => import("../games/Game003/index.vue"),
         params: true,
       },
-      {
-        path: "gameDemo",
-        component: () => import("../games/GameDemo/index.vue"),
-        params: true,
-      }
     ],
   },
   {
@@ -110,24 +105,19 @@ const routes = [
         component: () => import("../threejs/015/index.vue"),
       },
       /// replace-flag
-  
-  
-  
-  
-  
-  
-  
-    ]
-  }
+    ],
+  },
 ];
 
-if(import.meta.env.DEV) {
-  routes.push({
-    path: "/gameDemo",
+if (import.meta.env.VITE_ENV == "development") {
+  // @ts-ignore
+  routes[3].children.push({
+    path: "gameDemo",
     component: () => import("../games/GameDemo/index.vue"),
-  })
+    params: true,
+  });
 }
-
+console.log(routes[3]);
 export const router = createRouter({
   routes,
   history: createWebHashHistory(),

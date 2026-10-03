@@ -1,32 +1,62 @@
-import { Application, Text, Graphics, Color, Container } from "pixi.js";
-import * as PIXI from "pixi.js";
-import Menu from "../components/Menu";
-import MenuItem from "../components/MenuItem";
-import Button from "../components/Button";
+import Root from "../components/v2/Root"
+import Button from "../components/v2/Button"
+import Container from "../components/v2/Container"
+import HContainer from "../components/v2/HContainer";
+import Text from "../components/v2/Text";
+import VContainer from "../components/v2/VContainer";
+import Toast from "../components/v2/Toast";
+
+
 export default async function initGame(canvas: HTMLDivElement) {
-  const app = new Application();
-  await app.init({
+  const uiRoot = new Root({
     background: "#3e3e3e",
     resizeTo: canvas,
     resolution: window.devicePixelRatio || 1,
     autoDensity: true,
-    // height: canvas.height,
-  });
-  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-  canvas.appendChild(app.canvas);
+  }, canvas);
 
-  // const text = new Text("Hello wolrd!")
+  uiRoot
+    .add(
+      new VContainer()
+        .add(
+          new HContainer()
+          .options({align: 'center', background: '#ff0000'})
+          .add(new Button().add(new Text().options({text: "按钮1"})))
+          .add(new Button().add(new Text().options({text: "按钮2"})))
+          .add(new Button().add(new Text().options({text: "按钮3"})))
+          .add(new Button().options({height: 200}).add(new Text().options({text: "按钮4", fontSize: 55,})))
+          .add(new Button().options({}))
+          .add(new Button().options({}))
+          .add(new Button().options({}))
+        )
+        .add(
+          new VContainer()
+          .add(new Text().options({text: "文本1"}))
+          .add(new Text().options({text: "文本2"}))
+          .add(new Text().options({text: "文本3"}))
+          .add(new Text().options({text: "文本4"}))
+          .add(
+            new Button()
+            .options({
+              onClick: (event) => Toast.error("游戏初始化完成")
+            })
+          )
+        )
+    );
 
-  const rect = new Graphics();
-  rect.rect(0, 0, app.screen.width, app.screen.height);
-  // rect.stroke({ color: 0xffffff, width: 2 });
-  app.stage.addChild(rect);
+    
+  // const moveParams = {
+  //   x: 500,
+  // }
 
-  const button = new Button({
-    text: "按钮888",
-    round: 8,
-  })
-  
-  app.stage.addChild(button);
-  button.position.set(100, 200);
+  // gsap.to(moveParams, {
+  //   x: 0,
+  //   duration: 1,
+  //   ease: "bounce.out",
+  //   onUpdate: () => {
+  //     button.options({
+  //       x: moveParams.x,
+  //     })
+  //   }
+  // })
 }
