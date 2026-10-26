@@ -5,6 +5,7 @@
       <GameCard title="扫雷" path="/gameContainer/game001" />
       <GameCard title="连连看" path="/gameContainer/game002" />
       <GameCard title="俄罗斯方块" path="/gameContainer/game003" />
+      <GameCard title="蜘蛛纸牌" path="/gameContainer/game004" />
       <template v-if="showDemoGame">
         <GameCard title="游戏Demo" path="/gameContainer/gameDemo" />
       </template>
