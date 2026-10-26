@@ -246,7 +246,7 @@ export default async function initGame(canvas: HTMLDivElement): Promise<() => vo
 				Toast.error("游戏结束");
 			}
 		}
-		if (clearedLines > 0) Toast.success(`消除 ${clearedLines} 行`);
+		// if (clearedLines > 0) Toast.success(`消除 ${clearedLines} 行`);
 		if (changed) render();
 	}
 
