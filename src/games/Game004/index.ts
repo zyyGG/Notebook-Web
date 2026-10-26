@@ -168,6 +168,8 @@ export default async function initGame(
 
   // 游戏开始发54张牌
   function dealCardOnStart() {
+    isDealing = true;
+    let completedCount = 0;
     // 从cards发60张牌.
     // 先发34张遮盖的牌
     for(let i = 0; i < 54; i ++) {
@@ -209,11 +211,17 @@ export default async function initGame(
           onComplete: () => {
             tempSprite.destroy()
             if(i > faceupStartIndex) {
-               cardSeques[slotIndex].container.addChild(card.sprite)
+              cardSeques[slotIndex].container.addChild(card.sprite)
               card.sprite.position.set(0, cardSpace * targetIndex)
             } else {
               cardSeques[slotIndex].container.addChild(card.backsprite)
               card.backsprite.position.set(0, cardSpace * targetIndex)
+              card.backsprite.on("pointertap", () => tryFlipCard(card))
+            }
+            card.cardSeque = cardSeques[slotIndex]
+            completedCount ++ 
+            if (completedCount === 54) {
+              isDealing = false;
             }
            
           }
@@ -228,6 +236,7 @@ export default async function initGame(
     }
 
     isDealing = true;
+    let completedCount = 0;
     
     // 发牌
     for(let i = 0; i < count; i++){
@@ -265,13 +274,18 @@ export default async function initGame(
             tempSprite.destroy()
             cardSeques[slotIndex].container.addChild(card.sprite)
             card.sprite.position.set(0, cardSpace * targetIndex)
+            card.cardSeque = cardSeques[slotIndex]
+
+            completedCount++;
+            if (completedCount === count) {
+              isDealing = false;
+            }
           },
         })
         
       })
     }
-    isDealing = false
-    return false
+    return true
     
   }
 
@@ -307,12 +321,12 @@ export default async function initGame(
     for (let suitIndex = 0; suitIndex < config.cardType; suitIndex++) {
       for (let setIndex = 0; setIndex < setsPerSuit; setIndex++) {
         for (let rank = 0; rank < config.cardCount; rank++) {
-          const desk = createCard(
+          const card = createCard(
             `${suitIndex}-${setIndex}-${rank}`,
             suits[suitIndex],
             rangks[rank],
           ) || null
-          cards.push(desk!);
+          cards.push(card!);
         }
       }
     }
@@ -323,6 +337,8 @@ export default async function initGame(
   function createCard(id: Card["id"], suit: string, rank: string): Card | null {
     const sprite = createCardSprite(`card_${suit}_${rank}`)
     const backSprite = createCardSprite("card_back")
+    backSprite.interactive = true;
+    backSprite.eventMode = 'static';
     if(!sprite) {
       throw new Error("错误的资源id");
       return null
@@ -335,6 +351,59 @@ export default async function initGame(
       sprite: sprite,
       backsprite: backSprite,
     };
+  }
+
+  // 尝试翻牌
+  function tryFlipCard(card: Card) {
+    if (isDealing || card.faceUp) return;
+    const column = card.cardSeque?.column || []
+    const target = column[column.length -1]
+    const isTopCard = (target == card);
+    if(isTopCard) {
+      card.faceUp = true
+      const position = target.backsprite.position
+      const container = card.cardSeque?.container!;
+      target.sprite.position.set(position.x, position.y);
+
+      // 执行动画
+      const back = card.backsprite
+      const front = card.sprite
+
+      const backScaleX = back.scale.x;
+      const frontScaleX = front.scale.x;
+      const cardY = back.y;
+      const centerX = cardSequeWidth / 2;
+
+      // 临时把旋转缩放中心放在牌的中央
+      back.pivot.x = back.texture.orig.width / 2;
+      back.x = centerX;
+
+      front.pivot.x = front.texture.orig.width / 2;
+      front.x = centerX;
+      front.y = cardY;
+      front.scale.x = 0;
+
+      gsap.timeline()
+      .to(back.scale, { x: 0, duration: 0.12 })
+      .call(() => {
+        // 替换操作
+        container.removeChild(back);
+        container.addChild(front);
+      })
+      .to(front.scale, { x: frontScaleX, duration: 0.12 })
+      .call(() => {
+        // 恢复正常布局坐标，避免影响后续移动和重新排版
+        back.scale.x = backScaleX;
+        back.pivot.x = 0;
+        back.x = 0;
+
+        front.pivot.x = 0;
+        front.x = 0;
+        front.y = cardY;
+      });
+      // container.removeChild(target.backsprite)
+      // container.addChild(target.sprite)
+    }
   }
 
   function randomCard(cards: Card[]) {

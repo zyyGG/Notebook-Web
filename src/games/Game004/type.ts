@@ -7,6 +7,7 @@ export type Card = {
   faceUp: boolean;
   sprite: PIXI.Sprite,
   backsprite: PIXI.Sprite,
+  cardSeque?: CardSeque,
 };
 
 export type CardSeque = {
