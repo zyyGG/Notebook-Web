@@ -4,7 +4,7 @@ import { Application, Assets, Container, Graphics, NineSliceSprite, Sprite, Fede
 import createNumber from "./Number";
 import { loadConfig, saveConfig } from "../utils";
 
-export default async function initGame(canvas: HTMLDivElement) {
+export default async function initGame(canvas: HTMLDivElement, signal?: AbortSignal): Promise<() => void> {
   const app = new Application();
   await app.init({
     background: "#3e3e3e",
@@ -12,7 +12,22 @@ export default async function initGame(canvas: HTMLDivElement) {
     resolution: window.devicePixelRatio || 1,
     autoDensity: true,
   });
-  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  let disposed = false;
+  const preventContextMenu = (event: MouseEvent) => event.preventDefault();
+  const destroyGame = () => {
+    if (disposed) return;
+    disposed = true;
+    app.renderer.off("resize", updateLayout);
+    canvas.removeEventListener("contextmenu", preventContextMenu);
+    signal?.removeEventListener("abort", destroyGame);
+    app.destroy({ removeView: true });
+  };
+  if (signal?.aborted) {
+    destroyGame();
+    return destroyGame;
+  }
+  signal?.addEventListener("abort", destroyGame, { once: true });
+  canvas.addEventListener("contextmenu", preventContextMenu);
   canvas.appendChild(app.canvas);
 
   // 准备配置
@@ -53,14 +68,55 @@ export default async function initGame(canvas: HTMLDivElement) {
 
   // 方块组
   const blocks: Block[][] = [];
+  let gameUi: Container | null = null;
+  let gameContainer: Container | null = null;
+  let gameDialogContainer: Container | null = null;
+  let difficultyContainer: Container | null = null;
+  let bombsPlaced = false;
+  let gameEnded = false;
 
 
-  // 准备资源
-  await loadAssets();
-  // 加载界面
-  await loadTapBarUi();
-  // 加载实际游戏场景
-  await loadGame();
+  try {
+    // 准备资源
+    await loadAssets();
+    if (disposed) return destroyGame;
+    // 加载界面
+    await loadTapBarUi();
+    if (disposed) return destroyGame;
+    // 加载实际游戏场景
+    await loadGame();
+    if (disposed) return destroyGame;
+    app.renderer.on("resize", updateLayout);
+    updateLayout();
+    return destroyGame;
+  } catch (error) {
+    destroyGame();
+    throw error;
+  }
+
+  function updateLayout() {
+    gameUi?.position.set(
+      (app.screen.width - gameSize.width) / 2,
+      (app.screen.height - gameSize.height - gameControlSize.height) / 2,
+    );
+    gameContainer?.position.set(
+      (app.screen.width - gameSize.width) / 2 + 12,
+      (app.screen.height - gameSize.height + gameControlSize.height) / 2 + 12,
+    );
+    if (difficultyContainer) {
+      const button = difficultyContainer.children[0];
+      difficultyContainer.position.set(
+        (app.screen.width - (button?.width || 0)) / 2,
+        (app.screen.height - difficultyContainer.height) / 2,
+      );
+    }
+    if (gameDialogContainer) {
+      gameDialogContainer.position.set(
+        app.screen.width / 2 + 20,
+        app.screen.height / 2 - 50,
+      );
+    }
+  }
 
   async function loadAssets() {
     Assets.reset(); // 重置资源，避免重复加载
@@ -201,12 +257,9 @@ export default async function initGame(canvas: HTMLDivElement) {
     timeBoardVisible = true,
   ) {
     // gamecontrol ui
-    const gameUi = new Container();
+    gameUi = new Container();
     app.stage.addChild(gameUi);
-    gameUi.position.set(
-      (app.screen.width - gameSize.width) / 2,
-      (app.screen.height - gameSize.height - gameControlSize.height) / 2,
-    );
+    updateLayout();
 
     // 背景
     const containerBackground = new NineSliceSprite({
@@ -320,12 +373,13 @@ export default async function initGame(canvas: HTMLDivElement) {
   }
 
   async function loadGame() {
-    const startX = (app.screen.width - gameSize.width + gameConfig.blockSize) / 2;
-    const startY = (app.screen.height - gameSize.height + gameControlSize.height) / 2 + 12;
     // 创建游戏容器
-    const gameContainer = new Container();
+    blocks.length = 0;
+    bombsPlaced = false;
+    gameEnded = false;
+    gameContainer = new Container();
     app.stage.addChild(gameContainer);
-    gameContainer.position.set(startX, startY);
+    updateLayout();
 
     // 创建游戏方块
     for(let i = 0; i < gameConfig.cols; i++) {
@@ -351,31 +405,19 @@ export default async function initGame(canvas: HTMLDivElement) {
       }
     }
 
-    // 放置炸弹
-    const putBomb = (x: number, y: number) => {
-      if(blocks[x][y].isBomb){
-        return putBomb(Math.floor(Math.random() * gameConfig.cols), Math.floor(Math.random() * gameConfig.rows));
-      } else {
-        blocks[x][y].isBomb = true;
-        return true;
-      }
-    }
-    for(let i = 0; i < gameConfig.bombs; i++) {
-      putBomb(Math.floor(Math.random() * gameConfig.cols), Math.floor(Math.random() * gameConfig.rows));
-    }
-
-    // 
+    // Bombs are placed on the first reveal so that the opening move is safe.
   }
 
   function handleSpriteClick(event: FederatedPointerEvent, x: number, y: number) {
     const button = event.button; // 0: 左键, 1: 中键, 2: 右键
     const block = blocks[x][y];
-    if(block.isRevealed) {
+    if(gameEnded || block.isRevealed) {
       return; // 不做处理
     }
     // 左键揭示土块
     if(button === 0) {
       if(block.isMarked || block.isQuestioned) return;
+      if (!bombsPlaced) placeBombs(x, y);
       block.isRevealed = true;
       if(block.isBomb) {
         gameOver(x, y);
@@ -400,6 +442,23 @@ export default async function initGame(canvas: HTMLDivElement) {
     checkWin();
     
     
+  }
+
+  function placeBombs(safeX: number, safeY: number) {
+    const candidates: Block[] = [];
+    for(let x = 0; x < gameConfig.cols; x++) {
+      for(let y = 0; y < gameConfig.rows; y++) {
+        if(x !== safeX || y !== safeY) candidates.push(blocks[x][y]);
+      }
+    }
+    for(let i = candidates.length - 1; i > 0; i--) {
+      const randomIndex = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[randomIndex]] = [candidates[randomIndex], candidates[i]];
+    }
+    for(let i = 0; i < gameConfig.bombs; i++) {
+      candidates[i].isBomb = true;
+    }
+    bombsPlaced = true;
   }
 
   function autoClickBlock(x: number, y: number) {
@@ -439,7 +498,7 @@ export default async function initGame(canvas: HTMLDivElement) {
   }
 
   function gameOver(x: number, y: number) {
-    // clearGame();
+    gameEnded = true;
     for(let i = 0; i < gameConfig.cols; i++) {
       for(let j = 0; j < gameConfig.rows; j++) {
         const block = blocks[i][j];
@@ -453,27 +512,20 @@ export default async function initGame(canvas: HTMLDivElement) {
   }
 
   function checkWin() {
-    let success = true;
     for(let i = 0; i < gameConfig.cols; i++) {
       for(let j = 0; j < gameConfig.rows; j++) {
         const block = blocks[i][j];
-        if(block.isBomb && !block.isMarked) {
-          success = false;
-          return; // 还有未标记的炸弹，不能胜利
-        }
         if(!block.isBomb && !block.isRevealed) {
-          success = false;
           return; // 还有未揭示的非炸弹格子，不能胜利
         }
       }
     }
-    if(success) {
-      // 游戏胜利逻辑
-      gameWin()
-    }
+    gameWin();
   }
 
   function gameWin() {
+    if (gameEnded) return;
+    gameEnded = true;
     for(let i = 0; i < gameConfig.cols; i++) {
       for(let j = 0; j < gameConfig.rows; j++) {
         const block = blocks[i][j];
@@ -483,7 +535,7 @@ export default async function initGame(canvas: HTMLDivElement) {
     // console.log("游戏胜利");
     app.stage.removeChildren(); // 清理屏幕
     loadTapBarUi(true, true, false, false);
-    const gameDialogContainer = new Container();
+    gameDialogContainer = new Container();
     app.stage.addChild(gameDialogContainer);
     const winnerText = new Text({
       text: "游戏获胜！！！",
@@ -495,14 +547,16 @@ export default async function initGame(canvas: HTMLDivElement) {
     gameDialogContainer.addChild(winnerText);
     
     gameDialogContainer.pivot.set(gameDialogContainer.width / 2, gameDialogContainer.height / 2);
-    gameDialogContainer.position.set(
-      (app.screen.width) / 2 + 20,
-      (app.screen.height) / 2 - 50,
-    )
+    updateLayout();
   }
 
   function resetGame() {
     app.stage.removeChildren(); // 清理屏幕
+    gameUi = null;
+    gameContainer = null;
+    gameDialogContainer = null;
+    difficultyContainer = null;
+    gameSource.setSource(0);
     loadTapBarUi();
     loadGame();
   }
@@ -513,6 +567,7 @@ export default async function initGame(canvas: HTMLDivElement) {
     loadTapBarUi(false, false, false, false);
 
     const diffcultyContainer = new Container();
+    difficultyContainer = diffcultyContainer;
     app.stage.addChild(diffcultyContainer);
 
     const easyButton = Button("简单", () => {
@@ -551,10 +606,7 @@ export default async function initGame(canvas: HTMLDivElement) {
     mediumButton.position.set(0, easyButton.height + 12);
     hardButton.position.set(0, (easyButton.height + 12) * 2);
     speButton.position.set(0, (easyButton.height + 12) * 3);
-    diffcultyContainer.position.set(
-      (app.screen.width - easyButton.width) / 2,
-      (app.screen.height - easyButton.height * 3 - 12 * 2) / 2,
-    )
+    updateLayout();
 
     // ceshi
     // const testButton = Button("测试", () => {
