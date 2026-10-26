@@ -5,6 +5,7 @@ import HContainer from "../components/v2/HContainer";
 import Text from "../components/v2/Text";
 import VContainer from "../components/v2/VContainer";
 import Toast from "../components/v2/Toast";
+import Dialog from "../components/v2/dialog";
 
 
 export default async function initGame(canvas: HTMLDivElement) {
@@ -40,10 +41,30 @@ export default async function initGame(canvas: HTMLDivElement) {
             .options({
               onClick: (event) => Toast.error("游戏初始化完成")
             })
+            .add(new Text().options({text: "Toast"}))
           )
+          .add(
+            new Button()
+            .options({
+              onClick: () => {
+                const dialog = new Dialog()
+                  .options({ width: 500, height: 220, dismissOnBackdropClick: true })
+                  .add(
+                    new VContainer()
+                      .options({ width: 452, height: 172, padding: 0, spacing: 12, align: "center", background: "transparent" })
+                      .add(new Text().options({ text: "对话框", fontSize: 22, textWeight: "bold" }))
+                      .add(new Text().options({ text: "这是一个对话框", fontSize: 16 }))
+                  );
+                uiRoot.add(dialog);
+                dialog.open();
+              }
+            })
+            .add(new Text().options({text: "Dialog"}))
+          )
+          
         )
     );
-
+    
     
   // const moveParams = {
   //   x: 500,

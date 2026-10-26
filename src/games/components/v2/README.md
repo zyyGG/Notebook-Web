@@ -137,7 +137,7 @@ padding: [8, 16, 12, 20] // 上、右、下、左
 
 也可以直接使用 `new Padding().set(...)`；`set()` 支持 1、2 或 4 个数字，或一个长度为 1、2 或 4 的数组。
 
-### HContainer 和 Toast
+### HContainer、VContainer、Toast 和 Dialog
 
 - `HContainer` 按 `_children` 顺序水平排列，支持继承自 `Container` 的 options，以及额外的 `spacing`。每个子项的位置由左/上 padding、前面子项的宽度、间距和子项自身 `x/y` 计算；间距只出现在子项之间。
 - `VContainer` 按 `_children` 顺序垂直排列，`spacing` 是子项之间的垂直间距；`align` 控制子项在交叉轴上的水平对齐（`start`、`center`、`end`）。
@@ -151,6 +151,24 @@ Toast.success("成功文本");
 Toast.error("错误文本");
 Toast.warn("警告文本");
 ```
+
+- `Dialog` 继承 `Container`，内容用 `.options().add()` 组合；加入 Root 后调用实例 `open()` / `close()` 控制显示。模态遮罩作为 Dialog 面板的 stage 同级对象，不进入内容布局、不挤动其他控件。遮罩默认拦截点击但不关闭；可选背景点击或 Escape 关闭。
+
+```ts
+import Dialog from "../components/v2/dialog";
+
+const dialog = new Dialog()
+	.options({ width: 400, height: 240, background: 0x24323b })
+	.add(titleContainer)
+	.add(contentContainer)
+	.add(footerContainer);
+
+root.add(dialog);
+dialog.open();
+dialog.close();
+```
+
+遮罩不会加入 Dialog 的 `_children` 内容列表；关闭后 Dialog 及其内容保留，可再次打开。Root 不需要特殊识别 Dialog。
 
 ## 注意事项
 
