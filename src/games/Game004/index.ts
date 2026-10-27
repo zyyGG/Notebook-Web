@@ -13,7 +13,7 @@ export default async function initGame(
   const config = {
     slotSize: 10, // 牌槽数量
     cardGroup: 8, // n副牌
-    cardType: 4, // n种花色
+    cardType: 1, // n种花色
     cardCount: 13, // 一个花色有n张牌
   };
 
@@ -28,6 +28,9 @@ export default async function initGame(
     autoDensity: true,
   });
   canvas.appendChild(app.renderer.canvas);
+  const dragContainer = new PIXI.Container()
+  app.stage.addChild(dragContainer)
+  dragContainer.zIndex = 10; // 拉高图层
 
   // 准备素材资源
   const suits = ["spade", "heart", "diamond", "club"].slice(0, config.cardType);
@@ -115,7 +118,35 @@ export default async function initGame(
   })
   let visibleStockCount = cardsBackup.length;
   const cardSpace = 36; // 牌和牌竖着的间距
-  
+
+  app.stage.eventMode = "static"
+  type DragState = {
+    card: Card;
+    column: CardSeque;
+    startX: number;
+    startY: number;
+    grabOffsetX: number;
+    grabOffsetY: number;
+  };
+  let dragState: DragState | null = null;
+  app.stage.on("pointerup", finishDrag)
+  app.stage.on('pointerupoutside', finishDrag); // 这个是为了解决边缘外松开的问题
+  app.stage.on('globalpointermove', (event: PIXI.FederatedPointerEvent)=> {
+    if(!dragState) return;
+
+    // 这里通过dragState拿到column的世界坐标
+    const pointer = dragContainer.toLocal(event.global);
+    dragState.card.sprite.position.set(
+      pointer.x + dragState.grabOffsetX,
+      pointer.y + dragState.grabOffsetY,
+    )
+  })
+
+  // 拿来取值的工具
+  const RANK_VALUE: Record<string, number> = { jack: 11, queen: 12, king: 13 };
+  const rankValue = (rank: string) => RANK_VALUE[rank] ?? Number(rank);
+  const suitValue = (suit: string) => suits.indexOf(suit);
+ 
   drawCardHeap(); // 绘制牌堆
   drawCardSlot();
   dealCardOnStart(); // 开局发牌
@@ -213,6 +244,11 @@ export default async function initGame(
             if(i > faceupStartIndex) {
               cardSeques[slotIndex].container.addChild(card.sprite)
               card.sprite.position.set(0, cardSpace * targetIndex)
+              // // 绑定事件
+              bindCardDrag(card)
+              // card.sprite.on("pointerdown", () => handleCardDown(card))
+              // card.sprite.on("pointermove", () => handleCardMove(card))
+              // card.sprite.on("pointerup", () => handleCardUp(card))
             } else {
               cardSeques[slotIndex].container.addChild(card.backsprite)
               card.backsprite.position.set(0, cardSpace * targetIndex)
@@ -275,6 +311,7 @@ export default async function initGame(
             cardSeques[slotIndex].container.addChild(card.sprite)
             card.sprite.position.set(0, cardSpace * targetIndex)
             card.cardSeque = cardSeques[slotIndex]
+            bindCardDrag(card)
 
             completedCount++;
             if (completedCount === count) {
@@ -288,6 +325,161 @@ export default async function initGame(
     return true
     
   }
+
+
+  // 给card绑定拖拽事件
+  function bindCardDrag(card: Card) {
+    card.sprite.on("pointerdown", (event: PIXI.FederatedPointerEvent) => {
+      const column = card.cardSeque;
+      if (isDealing || dragState || !card.faceUp || !column) {
+        return;
+      }
+      
+      const spriteGlobal = card.sprite.getGlobalPosition(); // 获取sprite在整个画布中的世界坐标, 
+      // const pointer = column.container.toLocal(event.global); // 得到点击位置坐标
+      const spriteInDrag = dragContainer.toLocal(spriteGlobal); // dragContaienr根据世界坐标获取到本地内部坐标
+      const pointer = dragContainer.toLocal(event.global); // 得到点击位置坐标
+      // console.log(dragContainer.position, pointer, event.global)
+      
+      const startX = card.sprite.x
+      const startY = card.sprite.y
+      card.sprite.position.copyFrom(spriteInDrag)
+      dragContainer.addChild(card.sprite)
+      
+      
+      dragState = {
+        card: card,
+        column: column, 
+        startX: startX,
+        startY: startY,
+        // grabOffsetX: card.sprite.x - pointer.x,
+        // grabOffsetY: card.sprite.y - pointer.y,
+        grabOffsetX: spriteInDrag.x - pointer.x,
+        grabOffsetY: spriteInDrag.y - pointer.y,
+      }
+      
+    })
+  }
+
+  // 结束拖拽
+  function finishDrag(event: PIXI.FederatedPointerEvent) {
+    if(!dragState) return
+
+    const { card, column, startX, startY } = dragState
+    // findTargetOnColumn()
+    // 清理拖拽信息
+    dragState = null
+    const targetSeq = findTargetOnColumn(event.global)
+
+    
+
+    if(targetSeq && targetSeq.column ){
+      const targetCard = targetSeq.column[targetSeq.column.length - 1]
+      if(targetCard && canplace(card, targetCard)) {
+        // 从原来的数组中移除,然后加入新的卡槽队列中
+        column.column.pop()
+        const targetIndex = targetSeq.column.length; // 拿到最后一个位置的坐标
+        targetSeq.column.push(card);
+        card.cardSeque = targetSeq;
+        
+        // 计算等会放置的坐标位置
+        const destination = dragContainer.toLocal(
+          targetSeq.container.toGlobal(
+            new PIXI.Point(0, cardSpace * targetIndex)
+          )
+        )
+
+        gsap.to(card.sprite, {
+          x: destination.x,
+          y: destination.y,
+          duration: 0.2,
+          onComplete: () => {
+            targetSeq.container.addChild(card.sprite)
+            card.sprite.position.set(0, cardSpace * targetIndex)
+          }
+        })
+        return
+      }else {
+        goBack()
+        return
+      }
+    } else {
+      goBack()
+    }
+
+    function goBack() {
+      const back = dragContainer.toLocal(
+        column.container.toGlobal(new PIXI.Point(startX, startY))
+      )
+      // 松开后, 回到最开始的位置
+      gsap.to(card.sprite, {
+        x: back.x,
+        y: back.y,
+        duration: 0.35,
+        onComplete: () => {
+          column.container.addChild(card.sprite)
+          card.sprite.position.set(startX, startY)
+        }
+      })
+    }
+    return 
+  }
+
+  // 判断能否放置
+  function canplace(card: Card, target:Card): boolean {
+    if(!target.faceUp) return false; // 处于背面的牌不能放
+    // 拖拽的卡数字得比目标列的数字小一, 
+    return rankValue(card.rank) + 1 === rankValue(target.rank)
+  }
+
+  function findTargetOnColumn(globalPoint: PIXI.Point): CardSeque | null {
+    for(const seq of cardSeques) {
+      const left = seq.position[0];
+      const right = left + cardSequeWidth + cardSequePadding;
+
+      if(globalPoint.x >= left && globalPoint.x < right) {
+        return seq
+      }
+    }
+    return null
+  }
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // function handleCardDown(card: Card) {
+  //   // 没有额外操作中
+  //   if(isDealing){
+  //     return 
+  //   }
+  //   // 是否是牌组最后一张
+
+
+  // }
+
+  // function handleCardMove(card: Card) {
+
+  // }
+
+  // function handleCardUp(card: Card) {
+
+  // }
 
   // 绘制计分板
   function drawBoard() {}
@@ -401,8 +593,6 @@ export default async function initGame(
         front.x = 0;
         front.y = cardY;
       });
-      // container.removeChild(target.backsprite)
-      // container.addChild(target.sprite)
     }
   }
 
