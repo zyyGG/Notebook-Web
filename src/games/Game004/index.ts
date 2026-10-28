@@ -103,6 +103,7 @@ export default async function initGame(
   // createCardHeap(); // 创建牌堆
   const heapContainer = new PIXI.Container()
   let isDealing = false; // 是否正在发牌
+  let isSettling = false; // 是否正在结算放牌中
   heapContainer.position.set(
     canvas.clientWidth - 240 - 48,
     canvas.clientHeight - 200,
@@ -116,8 +117,15 @@ export default async function initGame(
     dealCard(10)
     console.log('发牌')
   })
+
+  // 完成牌堆
+  const foundationContainer = new PIXI.Container();
+  foundationContainer.position.set(48, canvas.clientHeight - cardSequeHeight - 48)
+  app.stage.addChild(foundationContainer)
+
   let visibleStockCount = cardsBackup.length;
   const cardSpace = 36; // 牌和牌竖着的间距
+  let completedRuns = 0;
 
   app.stage.eventMode = "static"
   type DragState = {
@@ -341,7 +349,7 @@ export default async function initGame(
   function bindCardDrag(card: Card) {
     card.sprite.on("pointerdown", (event: PIXI.FederatedPointerEvent) => {
       const column = card.cardSeque;
-      if (isDealing || dragState || !card.faceUp || !column) {
+      if (isDealing || isSettling || dragState || !card.faceUp || !column) {
         return;
       }
 
@@ -401,9 +409,20 @@ export default async function initGame(
     // findTargetOnColumn()
     // 清理拖拽信息
     dragState = null
+    isSettling = true; // 结束的时候动画都还在执行中. 需要动画执行完之后,才会执行放牌操作
     const targetSeq = findTargetOnColumn(event.global)
+    let finished = 0;
+    const settle = () => {
+      if(++finished !== group.length) return;
+      isSettling = false
+
+      if(targetSeq) checkCompleteRun(targetSeq)
+    }
+    
     // 获取到
     const movingCard = group[0]
+    
+    
 
     // 判断条件: 
     // targetSeq 是否成立
@@ -420,6 +439,13 @@ export default async function initGame(
       // 确定可以放置, 那就开始处理数据
       // 把正在移动的给从原来的数组剔除
       column.column.splice(startIndex, group.length);
+
+      // 准备翻牌
+      const newTop = column.column[column.column.length - 1]
+      if(newTop && !newTop.faceUp == true) {
+        tryFlipCard(newTop)
+      }
+
       const baseIndex = targetSeq.column.length; // 等会儿新数组开始插入的起始位置
       group.forEach((c, i) => {
         c.cardSeque = targetSeq; // 卡的缓存seq更新
@@ -439,6 +465,7 @@ export default async function initGame(
             // 动画播完之后, 放入card. 
             targetSeq.container.addChild(c.sprite);
             c.sprite.position.set(0, cardSpace * (baseIndex + i));
+            settle()
           }, 
         })
       })
@@ -458,6 +485,7 @@ export default async function initGame(
             // 把
             column.container.addChild(c.sprite)
             c.sprite.position.set(startPositions[i].x, startPositions[i].y)
+            settle()
           }
         })
       })
@@ -480,12 +508,14 @@ export default async function initGame(
   }
 
   // 判断能否放置
-  function canplace(card: Card, target:Card): boolean {
+  function canplace(card: Card, target:Card | undefined): boolean {
+    if(!target) return true; // undefinded 就是准备移动到空列中了.
     if(!target.faceUp) return false; // 处于背面的牌不能放
     // 拖拽的卡数字得比目标列的数字小一, 
     return rankValue(card.rank) + 1 === rankValue(target.rank)
   }
 
+  // 从column中查找目标队列
   function findTargetOnColumn(globalPoint: PIXI.Point): CardSeque | null {
     for(const seq of cardSeques) {
       const left = seq.position[0];
@@ -496,6 +526,74 @@ export default async function initGame(
       }
     }
     return null
+  }
+
+  // 检查有没有完成一套牌
+  function checkCompleteRun(seq: CardSeque) {
+    const run = findCompletedRun(seq.column); // 找到匹配的套牌
+    if(!run) return
+
+    isSettling = true; // 避免动画期间 拖牌造成bug
+    seq.column.splice(seq.column.length - run.length); // 把牌从旧的移除
+
+    // 用来决定这牌放在那里
+    const setIndex = completedRuns;
+    const baseX = setIndex * 24
+    const innerOffset = 2;
+
+    let finished = 0;
+    const done = () => {
+      if(++finished !== run.length) return;
+
+      // 牌移走后, 新的顶牌要翻开
+      const newTop = seq.column[seq.column.length - 1]
+      if (newTop && !newTop.faceUp) tryFlipCard(newTop);
+
+      completedRuns++;
+      isSettling = false
+      if (completedRuns === 8) handleWin();
+    }
+
+    run.forEach((c, i) => {
+      const localX = baseX + i * innerOffset;
+      const destination = dragContainer.toLocal(
+        foundationContainer.toGlobal(new PIXI.Point(localX, 0)),
+      );
+
+      gsap.to(c.sprite, {
+        x: destination.x,
+        y: destination.y,
+        duration: 0.3,
+        delay: i * 0.01,
+        onComplete: () => {
+          foundationContainer.addChild(c.sprite)
+          c.sprite.position.set(i * 8, 0)
+          c.cardSeque = undefined; // 这套牌就不可点击了
+          done()
+        }
+      })
+    })
+  }
+
+  // 
+  function findCompletedRun(column: Card[]): Card[] | null{
+    if(column.length < 13 ) return null;
+
+    const run = column.slice(-13); // 只判断末尾的13张牌
+
+    if (!run.every((c) => c.faceUp)) return null; // 判断所有牌是否都已翻开
+
+    const suit = run[0].suit;
+    const isRun = run.every(
+      (c, i) => c.suit === suit && rankValue(c.rank) === 13 - i
+    );
+
+    return isRun ? run : null
+
+  }
+
+  function handleWin() {
+    console.log("your win")
   }
  
 
