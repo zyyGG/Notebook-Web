@@ -122,10 +122,15 @@ export default async function initGame(
   const foundationContainer = new PIXI.Container();
   foundationContainer.position.set(48, canvas.clientHeight - cardSequeHeight - 48)
   app.stage.addChild(foundationContainer)
+  // 烟花图层
+  const fireworksContainer = new PIXI.Container()
+  fireworksContainer.eventMode = "none"
+  app.stage.addChild(fireworksContainer)
 
   let visibleStockCount = cardsBackup.length;
   const cardSpace = 36; // 牌和牌竖着的间距
   let completedRuns = 0;
+  let isGameOver = false; // 游戏结束?
 
   app.stage.eventMode = "static"
   type DragState = {
@@ -594,10 +599,87 @@ export default async function initGame(
 
   function handleWin() {
     console.log("your win")
+    if (isGameOver) return;
+    isGameOver = true;
+
+    startFireworks();
+
+    const text = new PIXI.Text({
+      text: "胜利！",
+      style: {
+        fontFamily: "sans-serif",
+        fontSize: 72,
+        fontWeight: "bold",
+        fill: 0xffd93d,
+        stroke: { color: 0x000000, width: 6 },
+      },
+    });
+    text.anchor.set(0.5);
+    text.position.set(app.screen.width / 2, app.screen.height / 2);
+    text.scale.set(0.4);
+    fireworksContainer.addChild(text);
+
+    gsap.to(text.scale, { x: 1, y: 1, duration: 0.5, ease: "back.out(2)" });
+    gsap.to(text, { alpha: 0.75, duration: 0.9, yoyo: true, repeat: -1 });
   }
  
+  function createParticleTexture(): PIXI.Texture {
+    const g = new PIXI.Graphics();
+    g.circle(0, 0, 6)
+    .fill(0xffffff)
+    const texture = app.renderer.generateTexture(g)
+    g.destroy()
+    return texture;
+  }
+  const particleTexture = createParticleTexture()
+  const FIREWORK_COLORS = [0xff4d4d, 0xffd93d, 0x4dd0ff, 0x8aff4d, 0xff8af0, 0xffffff];
 
+  function explode(x: number, y: number) {
+    const count = 36;
+    const color = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
 
+    for (let i = 0; i < count; i++) {
+      const particle = new PIXI.Sprite(particleTexture);
+      particle.anchor.set(0.5);
+      particle.position.set(x, y);
+      particle.tint = color;
+      particle.alpha = 1;
+      particle.scale.set(0.5 + Math.random() * 0.7);
+      fireworksContainer.addChild(particle);
+
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.25;
+      const distance = 80 + Math.random() * 140;
+
+      gsap.to(particle, {
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance + 70, // 重力下坠
+        alpha: 0,
+        scale: 0.1,
+        duration: 0.9 + Math.random() * 0.7,
+        ease: "power2.out",
+        onComplete: () => particle.destroy(),
+      });
+    }
+  }
+
+  let fireworkTimer:any = null
+
+  function startFireworks() {
+    const spawn = () => {
+      const x = 120 + Math.random() * (app.screen.width - 240)
+      const y = 100 + Math.random() * (app.screen.height * 0.5)
+      explode(x, y)
+      fireworkTimer = gsap.delayedCall(0.35 + Math.random() * 0.45, spawn)
+    }
+    spawn()
+  }
+
+  function stopFireworks() {
+  // @ts-ignore
+  fireworkTimer?.kill();
+  fireworkTimer = null;
+  fireworksContainer.removeChildren().forEach((child) => child.destroy());
+}
 
 
 
