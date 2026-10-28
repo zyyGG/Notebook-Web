@@ -8,4 +8,13 @@ const canvas = ref<HTMLDivElement | null>(null);
 onMounted(() => {
   canvas.value && initGame(canvas.value);
 });
+
+function handleRefresh() {
+  localStorage.removeItem("gameConfig_gameDemo");
+  location.reload();
+}
+
+defineExpose({
+  handleRefresh
+})
 </script>
