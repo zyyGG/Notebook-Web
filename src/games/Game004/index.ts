@@ -123,8 +123,11 @@ export default async function initGame(
   type DragState = {
     card: Card;
     column: CardSeque;
-    startX: number;
-    startY: number;
+    startIndex: number; // 
+    startPositions: {x: number, y:number}[]
+    group: Card[],
+    // startX: number;
+    // startY: number;
     grabOffsetX: number;
     grabOffsetY: number;
   };
@@ -136,10 +139,17 @@ export default async function initGame(
 
     // 这里通过dragState拿到column的世界坐标
     const pointer = dragContainer.toLocal(event.global);
-    dragState.card.sprite.position.set(
-      pointer.x + dragState.grabOffsetX,
-      pointer.y + dragState.grabOffsetY,
-    )
+    // 我们只更新第一张的位置, 然后其他的牌根据第一张牌的位置来做平移
+    const targetX = pointer.x + dragState.grabOffsetX;
+    const targetY = pointer.y + dragState.grabOffsetY;
+
+    const dx = targetX - dragState.card.sprite.x;
+    const dy = targetY - dragState.card.sprite.y;
+
+    dragState.group.forEach((c) => {
+      c.sprite.x += dx;
+      c.sprite.y += dy;
+    })
   })
 
   // 拿来取值的工具
@@ -334,28 +344,50 @@ export default async function initGame(
       if (isDealing || dragState || !card.faceUp || !column) {
         return;
       }
+
+      const index = column.column.indexOf(card)
+      if(index < 0 || !canDragSeq(column.column, index)) return;
+
+      // 
+      const group = column.column.slice(index)
+      const startPositions = group.map(c => ({x: c.sprite.x, y: c.sprite.y }))
+
+      // 指针先换算到拖拽层坐标
+      const pointer = dragContainer.toLocal(event.global)
+
+      // 按下牌更换父容器后, 在拖拽层中的位置
+      const cardInDrag = dragContainer.toLocal(card.sprite.getGlobalPosition())
+
+      group.forEach((c) => {
+        const inDrag = dragContainer.toLocal(c.sprite.getGlobalPosition())
+        dragContainer.addChild(c.sprite)
+        c.sprite.position.copyFrom(inDrag)
+      })
       
-      const spriteGlobal = card.sprite.getGlobalPosition(); // 获取sprite在整个画布中的世界坐标, 
+      // const spriteGlobal = card.sprite.getGlobalPosition(); // 获取sprite在整个画布中的世界坐标, 
       // const pointer = column.container.toLocal(event.global); // 得到点击位置坐标
-      const spriteInDrag = dragContainer.toLocal(spriteGlobal); // dragContaienr根据世界坐标获取到本地内部坐标
-      const pointer = dragContainer.toLocal(event.global); // 得到点击位置坐标
+      // const spriteInDrag = dragContainer.toLocal(spriteGlobal); // dragContaienr根据世界坐标获取到本地内部坐标
+      // const pointer = dragContainer.toLocal(event.global); // 得到点击位置坐标
       // console.log(dragContainer.position, pointer, event.global)
       
-      const startX = card.sprite.x
-      const startY = card.sprite.y
-      card.sprite.position.copyFrom(spriteInDrag)
-      dragContainer.addChild(card.sprite)
+      // const startX = card.sprite.x
+      // const startY = card.sprite.y
+      // card.sprite.position.copyFrom(spriteInDrag)
+      // dragContainer.addChild(card.sprite)
       
       
       dragState = {
         card: card,
         column: column, 
-        startX: startX,
-        startY: startY,
+        startIndex: index,
+        group,
+        startPositions,
+        // startX: startX,
+        // startY: startY,
         // grabOffsetX: card.sprite.x - pointer.x,
         // grabOffsetY: card.sprite.y - pointer.y,
-        grabOffsetX: spriteInDrag.x - pointer.x,
-        grabOffsetY: spriteInDrag.y - pointer.y,
+        grabOffsetX: cardInDrag.x - pointer.x,
+        grabOffsetY: cardInDrag.y - pointer.y,
       }
       
     })
@@ -365,64 +397,86 @@ export default async function initGame(
   function finishDrag(event: PIXI.FederatedPointerEvent) {
     if(!dragState) return
 
-    const { card, column, startX, startY } = dragState
+    const { card, column, group, startIndex, startPositions } = dragState
     // findTargetOnColumn()
     // 清理拖拽信息
     dragState = null
     const targetSeq = findTargetOnColumn(event.global)
+    // 获取到
+    const movingCard = group[0]
 
-    
+    // 判断条件: 
+    // targetSeq 是否成立
+    // targetSeq与 正在被移动column是不是同一个seq, 是就不用移动
+    if(
+      targetSeq && 
+      targetSeq.id !== column.id && 
+      canplace(movingCard, targetSeq.column[targetSeq.column.length - 1])
+    ){
+      // const targetCard = targetSeq.column[targetSeq.column.length - 1]
+      // 从原来的数组中移除,然后加入新的卡槽队列中
+      // column.column.pop()
 
-    if(targetSeq && targetSeq.column ){
-      const targetCard = targetSeq.column[targetSeq.column.length - 1]
-      if(targetCard && canplace(card, targetCard)) {
-        // 从原来的数组中移除,然后加入新的卡槽队列中
-        column.column.pop()
-        const targetIndex = targetSeq.column.length; // 拿到最后一个位置的坐标
-        targetSeq.column.push(card);
-        card.cardSeque = targetSeq;
-        
-        // 计算等会放置的坐标位置
+      // 确定可以放置, 那就开始处理数据
+      // 把正在移动的给从原来的数组剔除
+      column.column.splice(startIndex, group.length);
+      const baseIndex = targetSeq.column.length; // 等会儿新数组开始插入的起始位置
+      group.forEach((c, i) => {
+        c.cardSeque = targetSeq; // 卡的缓存seq更新
+        targetSeq.column.push(c); // 放入新的card
+
         const destination = dragContainer.toLocal(
           targetSeq.container.toGlobal(
-            new PIXI.Point(0, cardSpace * targetIndex)
+            new PIXI.Point(0, cardSpace * (baseIndex + i)), // 这里是通过增量偏移来计算目标位置
           )
         )
 
-        gsap.to(card.sprite, {
+        gsap.to(c.sprite, {
           x: destination.x,
           y: destination.y,
           duration: 0.2,
           onComplete: () => {
-            targetSeq.container.addChild(card.sprite)
-            card.sprite.position.set(0, cardSpace * targetIndex)
+            // 动画播完之后, 放入card. 
+            targetSeq.container.addChild(c.sprite);
+            c.sprite.position.set(0, cardSpace * (baseIndex + i));
+          }, 
+        })
+      })
+    } else {
+      group.forEach((c, i) => {
+        const back = dragContainer.toLocal(
+          column.container.toGlobal(
+            new PIXI.Point(startPositions[i].x, startPositions[i].y)
+          )
+        )
+        // 松开后, 回到最开始的位置
+        gsap.to(c.sprite, {
+          x: back.x,
+          y: back.y,
+          duration: 0.35,
+          onComplete: () => {
+            // 把
+            column.container.addChild(c.sprite)
+            c.sprite.position.set(startPositions[i].x, startPositions[i].y)
           }
         })
-        return
-      }else {
-        goBack()
-        return
-      }
-    } else {
-      goBack()
-    }
-
-    function goBack() {
-      const back = dragContainer.toLocal(
-        column.container.toGlobal(new PIXI.Point(startX, startY))
-      )
-      // 松开后, 回到最开始的位置
-      gsap.to(card.sprite, {
-        x: back.x,
-        y: back.y,
-        duration: 0.35,
-        onComplete: () => {
-          column.container.addChild(card.sprite)
-          card.sprite.position.set(startX, startY)
-        }
       })
     }
-    return 
+  }
+
+  // 判断能否拖拽
+  function canDragSeq(column: Card[], startIndex: number): boolean {
+    const group = column.slice(startIndex); // 没传末尾就是自动到末尾
+    if(group.length === 0) return false;
+
+    return group.every((card, i) => {
+      if(!card.faceUp) return false;
+      if(i === 0) return true;
+
+      const prev = group[i - 1]
+      // 花色不同也是可以拖拽的. 只是结算的时候不行
+      return rankValue(prev.rank) === rankValue(card.rank) + 1;
+    })
   }
 
   // 判断能否放置
@@ -556,6 +610,7 @@ export default async function initGame(
       const position = target.backsprite.position
       const container = card.cardSeque?.container!;
       target.sprite.position.set(position.x, position.y);
+      bindCardDrag(target)
 
       // 执行动画
       const back = card.backsprite
