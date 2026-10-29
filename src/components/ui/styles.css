@@ -1,0 +1,18 @@
+:root {
+  color-scheme: dark;
+  --ui-color-background: #17191d;
+  --ui-color-surface: #202328;
+  --ui-color-surface-raised: #23262b;
+  --ui-color-text: #f5f3ef;
+  --ui-color-text-muted: #a4a6a7;
+  --ui-color-text-subtle: #85898a;
+  --ui-color-accent: #b6ef67;
+  --ui-color-accent-hover: #c8fa82;
+  --ui-color-accent-border: rgba(182, 239, 103, 0.48);
+  --ui-color-blue: #8bc9ff;
+  --ui-color-warm: #f2b58b;
+  --ui-color-border: rgba(255, 255, 255, 0.09);
+  --ui-color-border-strong: rgba(255, 255, 255, 0.18);
+  --ui-radius-control: 7px;
+  --ui-radius-card: 9px;
+}

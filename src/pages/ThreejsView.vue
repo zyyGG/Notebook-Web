@@ -1,73 +1,212 @@
 <template>
-  <div class="w-full flex flex-row h-screen overflow-hidden">
-    <div class="position-absolute flex flex-col w-64 h-full bg-gray-900 transition-width" :style="{'width': isMenuCollapsed == true ? 'calc(var(--spacing) * 36)': 'calc(var(--spacing) * 64)'}">
-      <!-- 控制器 -->
-      <div class="w-full pl-2">
-        <div class="w-full flex flex-col">
-          <div class="w-full flex flex-row items-center justify-end">
-            <div class="flex-1">
-              <span class="text-white font-bold text-xl whitespace-nowrap" v-show="isMenuCollapsed == false">Three.js Demos</span>
-              <span class="text-white font-bold text-xl whitespace-nowrap" v-show="isMenuCollapsed == true">Demos</span>
-            </div>
-            
-            <!-- 收起菜单按钮 -->
-            <button class="px-4 py-2 hover:bg-gray-200 hover:text-gray-700" @click="() => {isMenuCollapsed = !isMenuCollapsed}">
-              <!-- 收起菜单 -->
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6">
-                <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
+  <div class="threejs-page">
+    <aside class="demo-sidebar" :class="{ 'demo-sidebar--collapsed': isMenuCollapsed }">
+      <div class="sidebar-header">
+        <div class="sidebar-title">
+          <span v-if="!isMenuCollapsed">Three.js Demos</span>
+          <span v-else>Demos</span>
+        </div>
+        <UiButton
+          variant="ghost"
+          size="small"
+          :aria-label="isMenuCollapsed ? '展开菜单' : '收起菜单'"
+          @click="isMenuCollapsed = !isMenuCollapsed"
+        >
+          <span aria-hidden="true">{{ isMenuCollapsed ? "☰" : "×" }}</span>
+        </UiButton>
+      </div>
 
-          </div>
-          <div class="flex flex-row items-center" v-show="isMenuCollapsed == false">
-            <input type="text" class="block flex-1 w-full h-full border-b border-gray-300 p-2 outline-none text-white bg-gray-900" placeholder="搜索..." />
-            <!-- 搜索按钮 -->
-            <button class="px-4 py-2 hover:bg-gray-200 hover:text-gray-700 relative top-2">
-              <!-- 搜索图标 -->
-              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24.000000" height="24.000000" fill="none">
-                <rect id="容器 9" width="24.000000" height="24.000000" x="0.000000" y="0.000000" />
-                <circle id="椭圆 3" cx="9.5" cy="9.5" r="6" stroke="rgb(205,205,205)" stroke-width="1.000000" />
-                <path id="直线 2" d="M0 -0.5L9.8995 -0.5Q9.94874 -0.5 9.99704 -0.490393Q10.0453 -0.480785 10.0908 -0.46194Q10.1363 -0.443094 10.1773 -0.415735Q10.2182 -0.388375 10.253 -0.353553Q10.2879 -0.318731 10.3152 -0.277785Q10.3426 -0.236839 10.3614 -0.191342Q10.3803 -0.145845 10.3899 -0.0975452Q10.3995 -0.0492457 10.3995 0Q10.3995 0.0492457 10.3899 0.0975452Q10.3803 0.145845 10.3614 0.191342Q10.3426 0.236839 10.3152 0.277785Q10.2879 0.318731 10.253 0.353553Q10.2182 0.388375 10.1773 0.415735Q10.1363 0.443094 10.0908 0.46194Q10.0453 0.480785 9.99704 0.490393Q9.94874 0.5 9.8995 0.5L0 0.5L0 -0.5ZM9.87949 -0.48L9.8995 -0.5C10.1795 -0.5 10.3995 -0.28 10.3995 0C10.3995 0.28 10.1795 0.5 9.8995 0.5L9.87949 0.48L9.87949 -0.48Z" fill="rgb(205,205,205)" fill-rule="nonzero" transform="matrix(0.707107,0.707107,-0.707107,0.707107,14,14)" />
-              </svg>
-            </button>
-          </div>
-        </div>
+      <div v-if="!isMenuCollapsed" class="sidebar-search">
+        <input type="search" placeholder="搜索..." aria-label="搜索 Three.js 示例" />
       </div>
-      <div class="flex-1 overflow-y-auto p-2">
-        <div v-for="item of demoList" :key="item.id" v-show="isMenuCollapsed == false">
-          <router-link :to="item.path" class="block p-2 hover:bg-gray-700 rounded">
-            <!-- <div class="w-full aspect-ratio-4/3 rounded rounded-lg"></div> -->
-            <div class="w-full text-left text-white">{{ item.name }}</div>
-          </router-link>
-        </div>
-        <div v-for="item of demoList" :key="item.id" v-show="isMenuCollapsed == true">
-          <router-link :to="item.path" class="block py-2 px-1 hover:bg-gray-700 rounded">
-            <div class="w-full text-left text-white">{{ item.name }}</div>
-          </router-link>
-        </div>
-      </div>
-    </div>
-    <div class="flex-1 pl-64 transition-padding" :style="{
-      'padding-left': isMenuCollapsed == true ? 'calc(var(--spacing) * 36)' : 'calc(var(--spacing) * 64)',
-      'width': isMenuCollapsed == true ? 'calc(100% - var(--spacing) * 36)' : 'calc(100% - var(--spacing) * 64)'
-    }">
-      <router-view></router-view>
-    </div>
+
+      <nav class="demo-list" aria-label="Three.js 示例">
+        <UiCard
+          v-for="item of demoList"
+          :key="item.id"
+          :to="item.path"
+          class="demo-link"
+          :class="{ 'demo-link--active': isActive(item.path) }"
+        >
+          <span>{{ item.name }}</span>
+          <span v-if="!isMenuCollapsed" class="demo-link-arrow" aria-hidden="true">↗</span>
+        </UiCard>
+      </nav>
+    </aside>
+
+    <main class="demo-content" :style="contentStyle">
+      <router-view />
+    </main>
   </div>
 </template>
+
 <script lang="ts" setup>
-import {ref, onMounted, shallowRef } from "vue"
-import { getMenuList } from "../api/three/index"
+import { computed, onMounted, ref, shallowRef } from "vue";
+import { useRoute } from "vue-router";
+import { getMenuList } from "../api/three/index";
+import { UiButton, UiCard } from "../components/ui";
 
-type DemoItem = Awaited<ReturnType<typeof getMenuList>>[number]
-  
-const isMenuCollapsed = ref(false)
-const demoList = shallowRef<DemoItem[]>([])
+type DemoItem = Awaited<ReturnType<typeof getMenuList>>[number];
+
+const route = useRoute();
+const isMenuCollapsed = ref(false);
+const demoList = shallowRef<DemoItem[]>([]);
+const contentStyle = computed(() => {
+  const sidebarWidth = isMenuCollapsed.value ? "80px" : "256px";
+  return {
+    marginLeft: sidebarWidth,
+    width: `calc(100% - ${sidebarWidth})`,
+  };
+});
+
 onMounted(async () => {
-  const response = await getMenuList()
-  demoList.value = response
-})
+  demoList.value = await getMenuList();
+});
 
+function isActive(path: string) {
+  return route.path === path || route.path.startsWith(`${path}/`);
+}
 </script>
-<style lang="scss" scoped>
+
+<style scoped>
+.threejs-page {
+  min-height: 100vh;
+  color: var(--ui-color-text);
+  background: var(--ui-color-background);
+}
+
+.demo-sidebar {
+  position: fixed;
+  z-index: 3;
+  inset: 0 auto 0 0;
+  display: flex;
+  width: 256px;
+  flex-direction: column;
+  border-right: 1px solid var(--ui-color-border);
+  background: var(--ui-color-surface);
+  transition: width 180ms ease;
+}
+
+.demo-sidebar--collapsed {
+  width: 80px;
+}
+
+.sidebar-header {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 10px 18px;
+  border-bottom: 1px solid var(--ui-color-border);
+}
+
+.sidebar-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-color-text);
+  font-size: 15px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-header :deep(.ui-button) {
+  min-width: 34px;
+  padding: 0 8px;
+  font-size: 18px;
+}
+
+.sidebar-search {
+  padding: 14px 14px 10px;
+}
+
+.sidebar-search input {
+  width: 100%;
+  padding: 10px 11px;
+  border: 0;
+  border-bottom: 1px solid var(--ui-color-border-strong);
+  outline: none;
+  color: var(--ui-color-text);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+}
+
+.sidebar-search input:focus {
+  border-color: var(--ui-color-accent);
+}
+
+.sidebar-search input::placeholder {
+  color: var(--ui-color-text-subtle);
+}
+
+.demo-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.demo-link {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-color: transparent;
+  color: var(--ui-color-text-muted);
+  background: transparent;
+  font-size: 12px;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.demo-link:hover,
+.demo-link--active {
+  border-color: var(--ui-color-border);
+  color: var(--ui-color-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.demo-link.ui-card--interactive:hover {
+  transform: none;
+}
+
+.demo-link--active {
+  border-color: var(--ui-color-accent-border);
+  color: var(--ui-color-accent);
+  background: rgba(182, 239, 103, 0.08);
+}
+
+.demo-link-arrow {
+  color: var(--ui-color-text-subtle);
+}
+
+.demo-content {
+  min-height: 100vh;
+  transition: margin-left 180ms ease, width 180ms ease;
+}
+
+@media (max-width: 600px) {
+  .demo-sidebar {
+    width: 208px;
+  }
+
+  .demo-sidebar--collapsed {
+    width: 64px;
+  }
+
+  .demo-content {
+    margin-left: 208px !important;
+    width: calc(100% - 208px) !important;
+  }
+
+  .demo-sidebar--collapsed ~ .demo-content {
+    margin-left: 64px !important;
+    width: calc(100% - 64px) !important;
+  }
+}
 </style>
