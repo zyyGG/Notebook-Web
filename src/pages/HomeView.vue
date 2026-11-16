@@ -97,7 +97,12 @@
 
       <footer class="landing-footer">
         <span>技能学习机 <span class="footer-divider">/</span> 用代码做点有趣的事</span>
-        <span>持续创作中 <span class="footer-dot"></span></span>
+        <div class="footer-links">
+          <a class="footer-github" href="https://github.com/zyyGG/Notebook-Web" target="_blank" rel="noopener noreferrer">
+            GitHub <span aria-hidden="true">↗</span>
+          </a>
+          <span>持续创作中 <span class="footer-dot"></span></span>
+        </div>
       </footer>
     </main>
 
@@ -463,6 +468,22 @@ const route = useRoute();
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.footer-github {
+  color: inherit;
+  text-decoration: none;
+}
+
+.footer-github:hover,
+.footer-github:focus-visible {
+  color: var(--ui-color-accent);
 }
 
 .footer-dot {
