@@ -1,4 +1,5 @@
 import * as PIXI from "pixi.js";
+import BaseContainer from "./BaseContainer";
 
 export type Options = {
   x?: number;
@@ -9,9 +10,7 @@ export type Options = {
   textWeight?: PIXI.TextStyleFontWeight;
 }
 
-export default class Text extends PIXI.Container {
-  _x: number = 0;
-  _y: number = 0;
+export default class Text extends BaseContainer {
   _text: string = "Text";
   _fontSize: number = 16; 
   _textColor: string | number = "0x000000";
@@ -28,8 +27,6 @@ export default class Text extends PIXI.Container {
     if(this.graphics) this.removeChild(this.graphics);
 
     const graphics = new PIXI.Text({
-      x: this._x,
-      y: this._y,
       text: this._text,
       style: {
           fontSize: this._fontSize,
@@ -38,8 +35,9 @@ export default class Text extends PIXI.Container {
       }
     });
     this.graphics = graphics;
+    this._width = graphics.width;
+    this._height = graphics.height;
     this.addChild(graphics);
-    return
   }
 
   options(options: Options = {}) {
@@ -50,6 +48,7 @@ export default class Text extends PIXI.Container {
     this._textColor = options.textColor ?? this._textColor;
     this._textWeight = options.textWeight ?? this._textWeight;
     this.draw();
+    this.refresh();
     return this;
   }
 }

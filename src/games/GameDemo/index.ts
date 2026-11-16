@@ -6,6 +6,9 @@ import Text from "../components/v2/Text";
 import VContainer from "../components/v2/VContainer";
 import Toast from "../components/v2/Toast";
 import Dialog from "../components/v2/dialog";
+import Sprite from "../components/v2/Sprite"
+import * as PIXI from "pixi.js"
+import { getIcon } from "../../utils";
 
 
 export default async function initGame(canvas: HTMLDivElement) {
@@ -21,7 +24,7 @@ export default async function initGame(canvas: HTMLDivElement) {
       new VContainer()
         .add(
           new HContainer()
-          .options({align: 'center', background: '#ff0000'})
+          .options({width: canvas.clientWidth, align: 'space-between', background: 'gray'})
           .add(new Button().add(new Text().options({text: "按钮1"})))
           .add(new Button().add(new Text().options({text: "按钮2"})))
           .add(new Button().add(new Text().options({text: "按钮3"})))
@@ -51,7 +54,7 @@ export default async function initGame(canvas: HTMLDivElement) {
                   .options({ width: 500, height: 220, dismissOnBackdropClick: true })
                   .add(
                     new VContainer()
-                      .options({ width: 452, height: 172, padding: 0, spacing: 12, align: "center", background: "transparent" })
+                      .options({ width: 452, height: 172, padding: 0, spacing: 12, align: "start", background: "gray" })
                       .add(new Text().options({ text: "对话框", fontSize: 22, textWeight: "bold" }))
                       .add(new Text().options({ text: "这是一个对话框", fontSize: 16 }))
                   );
@@ -63,7 +66,21 @@ export default async function initGame(canvas: HTMLDivElement) {
           )
           
         )
+        .add(
+          new HContainer()
+          .options({align: 'center'})
+          .add(
+            new Button().options({padding: [4, 8], width: 48, height: 40})
+            .add(new Sprite('option'))
+          )
+          .add(
+            new Sprite().options({width: 256, height: 256, name: "option"})
+          )
+        )
     );
+
+  
+  
     
     
   // const moveParams = {

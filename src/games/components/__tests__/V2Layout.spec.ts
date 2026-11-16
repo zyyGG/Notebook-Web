@@ -33,6 +33,37 @@ describe("v2 container layout", () => {
     expect(container._height).toBe(80);
   });
 
+  it("uses Text x/y as container offsets and redraws its content at the origin", () => {
+    const text = new Text().options({ x: 7, y: 9, text: "Label", fontSize: 24 });
+    const button = new Button().options({ padding: [4, 6] }).add(text);
+
+    expect(text.position.x).toBe(button._padding.left + 7);
+    expect(text.position.y).toBe(button._padding.top + 9);
+    expect(text.graphics.position.x).toBe(0);
+    expect(text.graphics.position.y).toBe(0);
+    expect(button._width).toBe(Math.max(64, Math.ceil(text._x + text._width + 6 + 6)));
+    expect(button._height).toBe(Math.max(28, Math.ceil(text._y + text._height + 4 + 4)));
+
+    const previousWidth = button._width;
+    text.options({ text: "A much longer label" });
+
+    expect(text.position.x).toBe(button._padding.left + 7);
+    expect(text.position.y).toBe(button._padding.top + 9);
+    expect(text.graphics.position.x).toBe(0);
+    expect(text.graphics.position.y).toBe(0);
+    expect(button._width).toBeGreaterThan(previousWidth);
+  });
+
+  it("centers button content in fixed bounds, including oversized text", () => {
+    const text = new Text().options({ text: "Large label", fontSize: 64 });
+    const button = new Button()
+      .options({ width: 120, height: 48, padding: 0 })
+      .add(text);
+
+    expect(text.position.x).toBeCloseTo((button._width - text._width) / 2);
+    expect(text.position.y).toBeCloseTo((button._height - text._height) / 2);
+  });
+
   it("lays out nested children before drawing and includes spacing", () => {
     const first = new Button().options({ x: 2, y: 3 }).add(new Text().options({ text: "A" }));
     const second = new Button().options({ x: 4, y: 5 }).add(new Text().options({ text: "BB" }));
@@ -53,22 +84,100 @@ describe("v2 container layout", () => {
     expect(root.position.y).toBe(50);
   });
 
-  it("stacks VContainer children vertically and aligns them horizontally", () => {
+  it("distributes HContainer children with space-between", () => {
+    const first = new Button().options({ width: 20, height: 10 });
+    const second = new Button().options({ width: 20, height: 10 });
+    const row = new HContainer()
+      .options({ width: 220, height: 40, padding: [5, 10], spacing: 10, align: "space-between" })
+      .add(first, second);
+
+    expect(first.position.x).toBe(10);
+    expect(second.position.x).toBe(190);
+    expect(first.position.y).toBe(5);
+    expect(second.position.y).toBe(5);
+    expect(row._width).toBe(220);
+  });
+
+  it("distributes HContainer children with space-around", () => {
+    const first = new Button().options({ width: 20, height: 10 });
+    const second = new Button().options({ width: 20, height: 10 });
+    const row = new HContainer()
+      .options({ width: 220, height: 40, padding: [5, 10], spacing: 10, align: "space-around" })
+      .add(first, second);
+
+    expect(first.position.x).toBe(47.5);
+    expect(second.position.x).toBe(152.5);
+    expect(first.position.y).toBe(5);
+    expect(second.position.y).toBe(5);
+    expect(row._width).toBe(220);
+  });
+
+  it("aligns HContainer children horizontally for center and end", () => {
+    const first = new Button().options({ width: 20, height: 10 });
+    const second = new Button().options({ width: 20, height: 10 });
+    const row = new HContainer()
+      .options({ width: 220, height: 40, padding: [5, 10], spacing: 10, align: "center" })
+      .add(first, second);
+
+    expect(first.position.x).toBe(85);
+    expect(second.position.x).toBe(115);
+    expect(first.position.y).toBe(5);
+    expect(second.position.y).toBe(5);
+
+    row.options({ align: "end" });
+
+    expect(first.position.x).toBe(160);
+    expect(second.position.x).toBe(190);
+    expect(first.position.y).toBe(5);
+    expect(second.position.y).toBe(5);
+  });
+
+  it("aligns VContainer children vertically for center and end", () => {
     const first = new Button().options({ x: 3, y: 2, width: 40, height: 20 });
     const second = new Button().options({ x: 4, y: 5, width: 30, height: 10 });
     const column = new VContainer()
       .options({ width: 100, height: 160, padding: [7, 11], spacing: 9, align: "center" })
       .add(first, second);
 
-    expect(first.position.y).toBe(7 + 2);
-    expect(second.position.y).toBe(7 + 2 + 20 + 9 + 5);
-    expect(first.position.x).toBe(11 + 3 + (78 - 40) / 2);
-    expect(second.position.x).toBe(11 + 4 + (78 - 30) / 2);
+    expect(first.position.y).toBe(59);
+    expect(second.position.y).toBe(93);
+    expect(first.position.x).toBe(11 + 3);
+    expect(second.position.x).toBe(11 + 4);
 
     column.options({ align: "end" });
 
-    expect(first.position.x).toBe(11 + 3 + 78 - 40);
-    expect(second.position.x).toBe(11 + 4 + 78 - 30);
+    expect(first.position.y).toBe(109);
+    expect(second.position.y).toBe(143);
+    expect(first.position.x).toBe(11 + 3);
+    expect(second.position.x).toBe(11 + 4);
+  });
+
+  it("distributes VContainer children with space-between", () => {
+    const first = new Button().options({ width: 20, height: 10 });
+    const second = new Button().options({ width: 20, height: 10 });
+    const column = new VContainer()
+      .options({ width: 60, height: 120, padding: [10, 5], spacing: 4, align: "space-between" })
+      .add(first, second);
+
+    expect(first.position.y).toBe(10);
+    expect(second.position.y).toBe(100);
+    expect(first.position.x).toBe(5);
+    expect(second.position.x).toBe(5);
+    expect(column._height).toBe(120);
+  });
+
+  it("distributes VContainer children with space-around", () => {
+    const first = new Button().options({ width: 20, height: 10 });
+    const second = new Button().options({ width: 20, height: 10 });
+    const column = new VContainer()
+      .options({ width: 60, height: 120, padding: [10, 5], spacing: 4, align: "space-around" })
+      .add(first, second);
+
+    expect(first.position.y).toBe(29);
+    expect(second.position.y).toBe(81);
+    expect(first.position.x).toBe(5);
+    expect(second.position.x).toBe(5);
+    expect(column._height).toBe(120);
   });
 
   it("reflows siblings when a child changes and accepts zero coordinates", () => {
@@ -139,6 +248,50 @@ describe("v2 container layout", () => {
     button.emit("pointertap", event);
 
     expect(onClick).toHaveBeenCalledTimes(1);
+    expect(button.eventMode).toBe("passive");
+  });
+
+  it("handles pointer hover, movement, and additional pointer events", () => {
+    const onPointerEnter = vi.fn();
+    const onPointerLeave = vi.fn();
+    const onPointerMove = vi.fn();
+    const onPointerUpOutside = vi.fn();
+    const onRightClick = vi.fn();
+    const button = new Button().options({
+      onPointerEnter,
+      onPointerLeave,
+      onPointerMove,
+      onPointerUpOutside,
+      onRightClick,
+    });
+    const event = {} as FederatedPointerEvent;
+
+    button.emit("pointerenter", event);
+    button.emit("pointerleave", event);
+    button.emit("pointermove", event);
+    button.emit("pointerupoutside", event);
+    button.emit("rightclick", event);
+
+    expect(onPointerEnter).toHaveBeenCalledWith(event);
+    expect(onPointerLeave).toHaveBeenCalledWith(event);
+    expect(onPointerMove).toHaveBeenCalledWith(event);
+    expect(onPointerUpOutside).toHaveBeenCalledWith(event);
+    expect(onRightClick).toHaveBeenCalledWith(event);
+    expect(button.eventMode).toBe("static");
+
+    button.options({ onPointerLeave: null, onPointerMove: null });
+    button.emit("pointerleave", event);
+    button.emit("pointermove", event);
+
+    expect(onPointerLeave).toHaveBeenCalledTimes(1);
+    expect(onPointerMove).toHaveBeenCalledTimes(1);
+    expect(button.eventMode).toBe("static");
+
+    button.options({
+      onPointerEnter: null,
+      onPointerUpOutside: null,
+      onRightClick: null,
+    });
     expect(button.eventMode).toBe("passive");
   });
 

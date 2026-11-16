@@ -4,11 +4,23 @@ import Toast from "./Toast";
 
 export type Options = {};
 
+/**
+ * @example
+ * const uiRoot = new Root({
+    background: "#3e3e3e",
+    resizeTo: canvas,
+    resolution: window.devicePixelRatio || 1,
+    autoDensity: true,
+  }, canvas);
+
+  uiRoot.add()
+ */
 export default class Root {
   public app?: PIXI.Application;
   public readonly ready: Promise<PIXI.Application>;
   private pending: Array<() => void> = []; // 待初始化完成的操作队列
   private destroyed = false;
+  private appOptions: Partial<PIXI.ApplicationOptions> = {}
 
   x: number = 0;
   y: number = 0;
@@ -16,11 +28,20 @@ export default class Root {
   ticker?: PIXI.Ticker;
 
   constructor(
-    public appOptions: Partial<PIXI.ApplicationOptions>,
+    appOptions: Partial<PIXI.ApplicationOptions> | PIXI.Application,
     public canvas: HTMLDivElement,
   ) {
-    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-    this.ready = this.#bootstrap();
+    if(appOptions instanceof PIXI.Application) {
+      // this.ready = appOptions; // 
+      this.app = appOptions
+      this.ready = Promise.resolve(this.app)
+      // this.appOptions = appOptions
+    } else {
+      this.appOptions = appOptions;
+      canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+      this.ready = this.#bootstrap();
+    }
+    
   }
 
   // 只会执行一次，初始化 PIXI.Application

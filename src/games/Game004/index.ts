@@ -1,6 +1,10 @@
 import * as PIXI from "pixi.js";
 import type { CardSeque, Card } from "./type";
 import gsap from "gsap";
+import { loadConfig, saveConfig } from "../utils";
+import { Root, Container, Button, Sprite, VContainer, HContainer, Text } from "../components/v2/index"
+
+const GAME_CONFIG_KEY = "spiderSolitaire";
 
 /**
  *
@@ -10,12 +14,13 @@ import gsap from "gsap";
 export default async function initGame(
   canvas: HTMLDivElement,
 ): Promise<() => void> {
-  const config = {
+  const config = loadConfig(GAME_CONFIG_KEY, {
     slotSize: 10, // 牌槽数量
     cardGroup: 8, // n副牌
     cardType: 1, // n种花色
     cardCount: 13, // 一个花色有n张牌
-  };
+  });
+  const allSuits = ["spade", "heart", "diamond", "club"];
 
   // 绘制场景
   const app = new PIXI.Application();
@@ -33,19 +38,21 @@ export default async function initGame(
   dragContainer.zIndex = 10; // 拉高图层
 
   // 准备素材资源
-  const suits = ["spade", "heart", "diamond", "club"].slice(0, config.cardType);
+  let suits = allSuits.slice(0, config.cardType);
   const rangks = [
     ...Array.from({ length: 10 }, (_, index) => String(index + 1)),
     "jack",
     "queen",
     "king",
   ];
-  const cardAssets = suits.flatMap((suit) => {
+  const cardAssets = allSuits.flatMap((suit) => {
     return rangks.map((rank) => ({
       alias: `card_${suit}_${rank}`,
       src: `/game004/cards/${suit}_${rank}.png`,
     }));
   });
+
+  let fireworkTimer:any = null
 
   cardAssets.push({
     alias: "card_back",
@@ -96,8 +103,7 @@ export default async function initGame(
   // const cardHeapsLength =
   // for(let i = 0; i < )
   // 创建牌堆
-  const cards: Card[] = randomCard(createCards());
-  const cardsBackup: Card[] = Object.assign([], cards);
+  let cardsBackup: Card[] = [];
   // 等待发牌牌堆
   // let cardsHeap: Card[][] = [];
   // createCardHeap(); // 创建牌堆
@@ -127,7 +133,7 @@ export default async function initGame(
   fireworksContainer.eventMode = "none"
   app.stage.addChild(fireworksContainer)
 
-  let visibleStockCount = cardsBackup.length;
+  let visibleStockCount = 0;
   const cardSpace = 36; // 牌和牌竖着的间距
   let completedRuns = 0;
   let isGameOver = false; // 游戏结束?
@@ -145,6 +151,19 @@ export default async function initGame(
     grabOffsetY: number;
   };
   let dragState: DragState | null = null;
+  const activeAnimations = new Set<gsap.core.Animation>();
+  const dealSprites = new Set<PIXI.Sprite>();
+
+  function trackAnimation<T extends gsap.core.Animation>(animation: T): T {
+    activeAnimations.add(animation);
+    const onComplete = animation.eventCallback("onComplete");
+    animation.eventCallback("onComplete", () => {
+      activeAnimations.delete(animation);
+      onComplete?.apply(animation, []);
+    });
+    return animation;
+  }
+
   app.stage.on("pointerup", finishDrag)
   app.stage.on('pointerupoutside', finishDrag); // 这个是为了解决边缘外松开的问题
   app.stage.on('globalpointermove', (event: PIXI.FederatedPointerEvent)=> {
@@ -167,18 +186,175 @@ export default async function initGame(
 
   // 拿来取值的工具
   const RANK_VALUE: Record<string, number> = { jack: 11, queen: 12, king: 13 };
-  const rankValue = (rank: string) => RANK_VALUE[rank] ?? Number(rank);
-  const suitValue = (suit: string) => suits.indexOf(suit);
+  const rankValue = (rank: string) => RANK_VALUE[rank] ?? Number(rank); // 牌的大小, A 2 3
+  const suitValue = (suit: string) => suits.indexOf(suit); // 牌的花色
  
-  drawCardHeap(); // 绘制牌堆
-  drawCardSlot();
-  dealCardOnStart(); // 开局发牌
+  initInterfaceUi()
+  restartGame(config.cardType);
 
-  // setTimeout(() => {
-  //   dealCard(10)
-  // }, 5000);
-  
+  // 准备用户ui相关逻辑
+  function initInterfaceUi(){
+    // 最右下脚绘制设置按钮.
+    const uiRoot = new Root(app, canvas);
+    const difficulties = [
+      { cardType: 1, label: "简单（1种花色）" },
+      { cardType: 2, label: "普通（2种花色）" },
+      { cardType: 4, label: "困难（4种花色）" },
+    ];
+    let selectedDifficulty = config.cardType;
+    const radioIndicators = new Map<number, PIXI.Graphics>();
 
+    const drawRadioIndicator = (indicator: PIXI.Graphics, selected: boolean) => {
+      indicator.clear().circle(12, 12, 9).stroke({ color: 0xffffff, width: 2 });
+      if (selected) indicator.circle(12, 12, 5).fill(0xffffff);
+    };
+    const resetDifficultySelection = () => {
+      selectedDifficulty = config.cardType;
+      radioIndicators.forEach((radio, optionCardType) => {
+        drawRadioIndicator(radio, optionCardType === selectedDifficulty);
+      });
+    };
+    const createActionButton = (label: string, background: string, onClick: () => void) => {
+      const text = new Text().options({  text: label, textColor: "white", fontSize: 20 });
+      // text.position.set((112 - text.width) / 2, (40 - text.height) / 2);
+      return new Button()
+        .options({ width: 112, height: 40, padding: 0, background, cursor: "pointer", onClick })
+        .add(text);
+    };
+
+    const dialog = new VContainer()
+    .options({
+      width: 480,
+      height: 360,
+      x: (canvas.clientWidth - 480) / 2,
+      y: (canvas.clientHeight - 360) / 2,
+      background: '#2e2e2e',
+      spacing: 0,
+    })
+    // 标题区域
+    .add(
+      new HContainer()
+      .options({width: 480, height: 40, align:'space-between', round: 0, background: "#1e1e1e"})
+      .add(new Text().options({x: 8, y: 8, fontSize: 24, textColor: "white", text: '游戏设置'}))
+      .add(
+        new Button().options({y: 4, padding: [4, 4], width: 32, height: 32, cursor: 'pointer', background: "transparent",
+        onClick: () => {
+          resetDifficultySelection();
+          dialog.visible = false
+        }
+        })
+        .add(new Sprite('cancel').options({ x: 0, y: 0, width: 24, height: 24, color: "white" }))
+      )
+    )
+    // 内容区域
+    .add(
+      new VContainer()
+      .options({width:480, height: 360 - 40 - 64, round: 0, padding: [16, 16], spacing: 8 })
+      // 难度选项
+      .add(
+        ...difficulties.map(({ cardType, label }) => {
+          const indicator = new PIXI.Graphics();
+          radioIndicators.set(cardType, indicator);
+          drawRadioIndicator(indicator, cardType === selectedDifficulty);
+
+          return new Button()
+            .options({
+              width: 448,
+              height: 44,
+              padding: 0,
+              background: "transparent",
+              cursor: "pointer",
+              onClick: () => {
+                selectedDifficulty = cardType;
+                radioIndicators.forEach((radio, optionCardType) => {
+                  drawRadioIndicator(radio, optionCardType === selectedDifficulty);
+                });
+              },
+            })
+            .add(
+              indicator,
+              new Text().options({ x: 32, y: 2, fontSize: 18, textColor: "white", text: label }),
+            );
+        }),
+      )
+    )
+    .add(
+      new HContainer()
+        .options({ width: 480, height: 64, padding: [8, 16], spacing: 8, align: "space-around", round: 0, background: "#252525" })
+        .add(
+          createActionButton("确定", "#315c48", () => {
+            restartGame(selectedDifficulty);
+            dialog.visible = false;
+          }),
+          createActionButton("重新开始", "#555555", () => {
+            resetDifficultySelection();
+            restartGame(config.cardType);
+            dialog.visible = false;
+          }),
+          createActionButton("取消", "#555555", () => {
+            resetDifficultySelection();
+            dialog.visible = false;
+          }),
+        ),
+    )
+
+    uiRoot.add(
+      new Container()
+      .add(
+        new Button()
+          .options({width: 40, height: 40, padding: [4, 4], background: 'transparent', cursor: "pointer", x: canvas.clientWidth - 48, y: canvas.clientHeight - 48, 
+            onClick: (event) => {
+              resetDifficultySelection();
+              uiRoot.add(dialog)
+              dialog.visible = true
+            }}
+          )
+          .add(new Sprite('option').options({width: 32, height: 32}))
+          
+      )
+    )
+  }
+
+  function restartGame(cardType: number) {
+    activeAnimations.forEach((animation) => animation.kill());
+    activeAnimations.clear();
+    stopFireworks();
+
+    dealSprites.forEach((sprite) => {
+      sprite.removeFromParent();
+      sprite.destroy();
+    });
+    dealSprites.clear();
+
+    clearChildren(heapContainer);
+    clearChildren(foundationContainer);
+    clearChildren(dragContainer);
+    cardSeques.forEach((sequence) => {
+      clearChildren(sequence.container);
+      sequence.column.length = 0;
+    });
+
+    config.cardType = cardType;
+    saveConfig(GAME_CONFIG_KEY, config);
+    suits = allSuits.slice(0, cardType);
+    cardsBackup = randomCard(createCards());
+    visibleStockCount = cardsBackup.length;
+    completedRuns = 0;
+    isGameOver = false;
+    isDealing = false;
+    isSettling = false;
+    dragState = null;
+
+    drawCardSlot();
+    drawCardHeap();
+    dealCardOnStart();
+  }
+
+  function clearChildren(container: PIXI.Container) {
+    container.removeChildren().forEach((child) => {
+      child.destroy({ children: true });
+    });
+  }
 
   // 绘制牌槽
   function drawCardSlot() {
@@ -239,6 +415,7 @@ export default async function initGame(
         tempSprite = createCardSprite(`card_${card.suit}_${card.rank}`)
         card.faceUp = true
       }
+      dealSprites.add(tempSprite);
       
       const targetIndex = cardSeques[slotIndex].column.length;
       cardSeques[slotIndex].column.push(card)
@@ -251,18 +428,19 @@ export default async function initGame(
       // tempSprite.position.set(start.x, start.y)
       tempSprite.zIndex = 999
 
-      gsap.delayedCall(i * 0.05, () => {
+      trackAnimation(gsap.delayedCall(i * 0.05, () => {
         const start = app.stage.toLocal(heapContainer.toGlobal(new PIXI.Point(0, 0)))
         tempSprite.position.copyFrom(start);
         app.stage.addChild(tempSprite);
         visibleStockCount--;
         drawCardHeap();
 
-        gsap.to(tempSprite, {
+        trackAnimation(gsap.to(tempSprite, {
           x: target.x,
           y: target.y,
           duration: 0.25,
           onComplete: () => {
+            dealSprites.delete(tempSprite);
             tempSprite.destroy()
             if(i > faceupStartIndex) {
               cardSeques[slotIndex].container.addChild(card.sprite)
@@ -284,8 +462,8 @@ export default async function initGame(
             }
            
           }
-        })
-      })
+        }))
+      }))
     }
   }
 
@@ -304,6 +482,7 @@ export default async function initGame(
 
       // 准备动画
       const tempSprite = createCardSprite(`card_${card.suit}_${card.rank}`)
+      dealSprites.add(tempSprite);
       // tempSprite.scale.set(cardSequeWidth / tempSprite.width)
       card.faceUp = true
       
@@ -318,18 +497,19 @@ export default async function initGame(
       // tempSprite.position.set(start.x, start.y)
       tempSprite.zIndex = 999
 
-      gsap.delayedCall(i * 0.05, () => {
+      trackAnimation(gsap.delayedCall(i * 0.05, () => {
         const start = app.stage.toLocal(heapContainer.toGlobal(new PIXI.Point(0, 0)))
         tempSprite.position.copyFrom(start);
         app.stage.addChild(tempSprite);
         visibleStockCount--;
         drawCardHeap();
 
-        gsap.to(tempSprite, {
+        trackAnimation(gsap.to(tempSprite, {
           x: target.x,
           y: target.y,
           duration: 0.25,
           onComplete: () => {
+            dealSprites.delete(tempSprite);
             tempSprite.destroy()
             cardSeques[slotIndex].container.addChild(card.sprite)
             card.sprite.position.set(0, cardSpace * targetIndex)
@@ -341,9 +521,9 @@ export default async function initGame(
               isDealing = false;
             }
           },
-        })
+        }))
         
-      })
+      }))
     }
     return true
     
@@ -462,7 +642,7 @@ export default async function initGame(
           )
         )
 
-        gsap.to(c.sprite, {
+        trackAnimation(gsap.to(c.sprite, {
           x: destination.x,
           y: destination.y,
           duration: 0.2,
@@ -472,7 +652,7 @@ export default async function initGame(
             c.sprite.position.set(0, cardSpace * (baseIndex + i));
             settle()
           }, 
-        })
+        }))
       })
     } else {
       group.forEach((c, i) => {
@@ -482,7 +662,7 @@ export default async function initGame(
           )
         )
         // 松开后, 回到最开始的位置
-        gsap.to(c.sprite, {
+        trackAnimation(gsap.to(c.sprite, {
           x: back.x,
           y: back.y,
           duration: 0.35,
@@ -492,7 +672,7 @@ export default async function initGame(
             c.sprite.position.set(startPositions[i].x, startPositions[i].y)
             settle()
           }
-        })
+        }))
       })
     }
   }
@@ -565,7 +745,7 @@ export default async function initGame(
         foundationContainer.toGlobal(new PIXI.Point(localX, 0)),
       );
 
-      gsap.to(c.sprite, {
+      trackAnimation(gsap.to(c.sprite, {
         x: destination.x,
         y: destination.y,
         duration: 0.3,
@@ -576,7 +756,7 @@ export default async function initGame(
           c.cardSeque = undefined; // 这套牌就不可点击了
           done()
         }
-      })
+      }))
     })
   }
 
@@ -619,8 +799,8 @@ export default async function initGame(
     text.scale.set(0.4);
     fireworksContainer.addChild(text);
 
-    gsap.to(text.scale, { x: 1, y: 1, duration: 0.5, ease: "back.out(2)" });
-    gsap.to(text, { alpha: 0.75, duration: 0.9, yoyo: true, repeat: -1 });
+    trackAnimation(gsap.to(text.scale, { x: 1, y: 1, duration: 0.5, ease: "back.out(2)" }));
+    trackAnimation(gsap.to(text, { alpha: 0.75, duration: 0.9, yoyo: true, repeat: -1 }));
   }
  
   function createParticleTexture(): PIXI.Texture {
@@ -650,7 +830,7 @@ export default async function initGame(
       const angle = (Math.PI * 2 * i) / count + Math.random() * 0.25;
       const distance = 80 + Math.random() * 140;
 
-      gsap.to(particle, {
+      trackAnimation(gsap.to(particle, {
         x: x + Math.cos(angle) * distance,
         y: y + Math.sin(angle) * distance + 70, // 重力下坠
         alpha: 0,
@@ -658,18 +838,18 @@ export default async function initGame(
         duration: 0.9 + Math.random() * 0.7,
         ease: "power2.out",
         onComplete: () => particle.destroy(),
-      });
+      }));
     }
   }
 
-  let fireworkTimer:any = null
+  
 
   function startFireworks() {
     const spawn = () => {
       const x = 120 + Math.random() * (app.screen.width - 240)
       const y = 100 + Math.random() * (app.screen.height * 0.5)
       explode(x, y)
-      fireworkTimer = gsap.delayedCall(0.35 + Math.random() * 0.45, spawn)
+      fireworkTimer = trackAnimation(gsap.delayedCall(0.35 + Math.random() * 0.45, spawn))
     }
     spawn()
   }
@@ -810,7 +990,7 @@ export default async function initGame(
       front.y = cardY;
       front.scale.x = 0;
 
-      gsap.timeline()
+      trackAnimation(gsap.timeline()
       .to(back.scale, { x: 0, duration: 0.12 })
       .call(() => {
         // 替换操作
@@ -827,7 +1007,7 @@ export default async function initGame(
         front.pivot.x = 0;
         front.x = 0;
         front.y = cardY;
-      });
+      }));
     }
   }
 

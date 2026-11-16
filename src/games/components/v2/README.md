@@ -85,7 +85,7 @@ new Button().options({
 });
 ```
 
-Button 不管理文字和字体，只负责背景、命中区域及点击事件。支持 `x`、`y`、`width`、`height`、`background`、`padding` 和 `onClick`。未指定宽高时，根据子项边界与内边距自动计算，最小尺寸为 `64 x 28`；显式指定后，该维度保持固定。
+Button 不管理文字和字体，只负责背景、命中区域及指针事件。支持 `x`、`y`、`width`、`height`、`background`、`padding`、`cursor` 和各类指针回调。未指定宽高时，根据子项边界与内边距自动计算，最小尺寸为 `64 x 28`；显式指定后，该维度保持固定。所有子项作为一个整体在按钮的 padding 内容区域内水平、垂直居中；内容大于固定按钮时仍按中心对齐，允许溢出。
 
 Button 可以像 Container 一样接收文本、图片或其他 PixiJS Container 子项。它会保留添加的内容，并按子项边界与 padding 计算按钮尺寸：
 
@@ -100,7 +100,7 @@ new Button()
 	);
 ```
 
-`onClick` 绑定 PixiJS `pointertap` 事件。传入 `null` 可移除回调；有回调时 Button 会启用静态事件模式并显示 pointer 光标。
+`onClick` 绑定 PixiJS `pointertap` 事件；还支持 `onDown`、`onUp`、`onUpOutside`、`onPointerEnter`、`onPointerLeave`、`onPointerMove`、`onPointerOver`、`onPointerOut`、`onPointerCancel` 和 `onRightClick`。事件回调接收 `PIXI.FederatedPointerEvent`，传入 `null` 可移除对应回调。有任一指针回调时 Button 会启用静态事件模式，并显示 `cursor` 指定的光标；没有回调时恢复 passive 模式。
 
 ### Rectangle
 
@@ -123,7 +123,7 @@ new Text().options({
 });
 ```
 
-支持 `x`、`y`、`text`、`fontSize`、`textColor` 和 `textWeight`。默认文字为 `Text`，字号 16，黑色，常规字重。它同样使用 PixiJS 的 `addChild()` 添加。
+支持 `x`、`y`、`text`、`fontSize`、`textColor` 和 `textWeight`。默认文字为 `Text`，字号 16，黑色，常规字重。`x/y` 设置 Text 容器相对于父项的位置，文字本身从容器原点绘制；文字尺寸会自动参与父容器和 Button 的布局测量。
 
 ### Padding
 
@@ -139,8 +139,8 @@ padding: [8, 16, 12, 20] // 上、右、下、左
 
 ### HContainer、VContainer、Toast 和 Dialog
 
-- `HContainer` 按 `_children` 顺序水平排列，支持继承自 `Container` 的 options，以及额外的 `spacing`。每个子项的位置由左/上 padding、前面子项的宽度、间距和子项自身 `x/y` 计算；间距只出现在子项之间。
-- `VContainer` 按 `_children` 顺序垂直排列，`spacing` 是子项之间的垂直间距；`align` 控制子项在交叉轴上的水平对齐（`start`、`center`、`end`）。
+- `HContainer` 按 `_children` 顺序水平排列，支持继承自 `Container` 的 options，以及额外的 `spacing`。`align` 为 `start`、`center` 或 `end` 时控制整组子项的水平左对齐、居中或右对齐；`space-between` 和 `space-around` 则在保留 `spacing` 的基础上，将固定宽度容器中的剩余水平空间分配到子项间或子项周围。子项的垂直位置按上方 padding 和自身 `y` 偏移排列。
+- `VContainer` 按 `_children` 顺序垂直排列，支持继承自 `Container` 的 options，以及额外的 `spacing`。`align` 为 `start`、`center` 或 `end` 时控制整组子项的纵向顶部对齐、居中或底部对齐；`space-between` 和 `space-around` 则在保留 `spacing` 的基础上，将固定高度容器中的剩余垂直空间分配到子项间或子项周围。子项的水平位置按左侧 padding 和自身 `x` 偏移排列。
 - `Toast` 通过 Root 挂载到 PixiJS stage，在画面顶部居中堆叠显示，并于 3 秒后自动消失。支持以下静态方法：
 
 ```ts

@@ -8,6 +8,7 @@ export type Options = {
   width?: number;
   height?: number;
   padding?: PaddingParams;
+  round?: number; // 圆角大小
   background?: string | number;
 }
 
@@ -17,13 +18,14 @@ export default class Container extends BaseContainer {
   _fixedWidth?: number;
   _fixedHeight?: number;
   _padding: Padding = new Padding();
+  _round?: number = 8;
 
   constructor() {
     super();
   }
 
   draw() {
-    this.drawBackground(8);
+    this.drawBackground(this._round);
     return this;
   }
 
@@ -68,6 +70,7 @@ export default class Container extends BaseContainer {
     if (options.height !== undefined) this._fixedHeight = options.height;
     this._padding = options.padding ? new Padding().set(options.padding) : this._padding;
     this._background = options.background ?? this._background;
+    this._round = options.round ?? this._round;
     this.onChildrenChanged();
     this.refresh();
     return this;

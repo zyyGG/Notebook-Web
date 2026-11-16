@@ -1,5 +1,6 @@
 <template>
   <div ref="canvas" class="h-full"></div>
+   <!-- <img :src="getIcon({name: 'option', color: '#383838'})" /> -->
 </template>
 <script lang="ts" setup>
 import { ref, onMounted } from "vue";

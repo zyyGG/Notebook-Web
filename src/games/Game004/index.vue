@@ -31,7 +31,7 @@ onUnmounted(() => {
 });
 
 function handleRefresh() {
-  localStorage.removeItem("gameConfig_eluosifangkuai");
+  localStorage.removeItem("gameConfig_spiderSolitaire");
   location.reload();
 }
 

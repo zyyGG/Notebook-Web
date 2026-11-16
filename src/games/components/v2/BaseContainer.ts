@@ -7,7 +7,7 @@ export default abstract class BaseContainer extends PIXI.Container {
   _height: number = 0;
   _children: PIXI.Container[] = [];
   _background: string | number = "transparent";
-  graphics!: PIXI.Graphics;
+  graphics!: PIXI.Graphics | PIXI.Text;
 
   #parentContainer?: BaseContainer;
   #childOrigins = new WeakMap<PIXI.Container, { x: number; y: number }>();
