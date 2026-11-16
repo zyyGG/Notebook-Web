@@ -9,11 +9,11 @@
         <TabBarButton :activeClassName="route.path === '/' ? 'text-blue' : ''">
           <router-link to="/">首页</router-link>
         </TabBarButton>
-        <TabBarButton :activeClassName="route.path === '/diary' ? 'text-blue' : ''">
+        <!-- <TabBarButton :activeClassName="route.path === '/diary' ? 'text-blue' : ''">
           <router-link to="/diary">日志</router-link>
-        </TabBarButton>
+        </TabBarButton> -->
         <TabBarButton :activeClassName="route.path === '/gameSelector' ? 'text-blue' : ''">
-          <router-link to="/gameSelector">游戏 Demo</router-link>
+          <router-link to="/gameSelector">Game</router-link>
         </TabBarButton>
         <TabBarButton :activeClassName="route.path === '/threejs' ? 'text-blue' : ''">
           <router-link to="/threejs">Three.js</router-link>
@@ -85,13 +85,13 @@
             <span class="card-description">浏览 3D 场景与交互实验，看看代码如何变成画面。</span>
             <span class="card-link">进入实验室 <span aria-hidden="true">→</span></span>
           </UiCard>
-          <UiCard to="/diary" class="explore-card">
+          <!-- <UiCard to="/diary" class="explore-card">
             <span class="card-index">03 / NOTES</span>
             <span class="card-icon diary-icon" aria-hidden="true">✎</span>
             <span class="card-title">创作日志</span>
             <span class="card-description">记录项目进度、灵感和开发过程中的小发现。</span>
             <span class="card-link">阅读日志 <span aria-hidden="true">→</span></span>
-          </UiCard>
+          </UiCard> -->
         </div>
       </section>
 

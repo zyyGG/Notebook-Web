@@ -1,6 +1,6 @@
 <template>
   <main class="game-selector">
-    <UiSectionHeading eyebrow="PLAY / ARCADE" title="挑一款游戏，马上开始">
+    <UiSectionHeading eyebrow="PLAY / ARCADE" title="Game Demo">
       <template #action>
         <UiBadge tone="muted">{{ gameCount }} 款游戏</UiBadge>
       </template>
